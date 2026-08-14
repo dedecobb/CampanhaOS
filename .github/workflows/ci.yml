@@ -1,0 +1,87 @@
+name: Backend CI
+
+# Roda em todo push e pull request que tocam a pasta backend/, evitando
+# gastar minutos de CI em mudanças que não afetam o backend (ex: só o
+# documento fonte da verdade foi atualizado).
+on:
+  push:
+    paths:
+      - "backend/**"
+      - ".github/workflows/ci.yml"
+  pull_request:
+    paths:
+      - "backend/**"
+      - ".github/workflows/ci.yml"
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+
+    # Serviços necessários para os testes de integração (Módulo 1 em
+    # diante). Já deixamos preparado agora para não precisar reescrever
+    # este workflow quando o primeiro teste com banco real for criado.
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: campanhaos_test
+          POSTGRES_PASSWORD: campanhaos_test
+          POSTGRES_DB: campanhaos_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U campanhaos_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v4
+
+      - name: Configurar Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Instalar dependências (incluindo dev)
+        run: pip install --no-cache-dir ".[dev]"
+
+      - name: Aplicar migrações do banco (Alembic)
+        env:
+          MIGRATION_DATABASE_URL: postgresql+asyncpg://campanhaos_test:campanhaos_test@localhost:5432/campanhaos_test
+          DATABASE_URL: postgresql+asyncpg://campanhaos_test:campanhaos_test@localhost:5432/campanhaos_test
+          APP_DB_PASSWORD: ci_app_role_password_not_for_production
+          REDIS_URL: redis://localhost:6379/0
+          JWT_SECRET_KEY: ci_test_secret_key_not_for_production
+        run: alembic upgrade head
+
+      - name: Lint (ruff)
+        run: ruff check .
+
+      - name: Checagem de tipos (mypy)
+        run: mypy src
+
+      - name: Testes (pytest) com cobertura
+        env:
+          ENVIRONMENT: development
+          DEBUG: "true"
+          DATABASE_URL: postgresql+asyncpg://campanhaos_app:ci_app_role_password_not_for_production@localhost:5432/campanhaos_test
+          MIGRATION_DATABASE_URL: postgresql+asyncpg://campanhaos_test:campanhaos_test@localhost:5432/campanhaos_test
+          REDIS_URL: redis://localhost:6379/0
+          JWT_SECRET_KEY: ci_test_secret_key_not_for_production
+        run: pytest --cov=src --cov-report=term-missing --cov-fail-under=80

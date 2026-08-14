@@ -1,0 +1,99 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: campanhaos_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-campanhaos}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-campanhaos}
+      POSTGRES_DB: ${POSTGRES_DB:-campanhaos}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-campanhaos}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: campanhaos_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # Interface web para inspecionar o PostgreSQL durante o desenvolvimento.
+  # Ferramenta de conveniência apenas — NÃO sobe em produção.
+  adminer:
+    image: adminer:latest
+    container_name: campanhaos_adminer
+    restart: unless-stopped
+    ports:
+      - "8081:8080"
+    depends_on:
+      - postgres
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: dev
+    container_name: campanhaos_backend
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+    volumes:
+      # Bind mount do código-fonte: permite editar o código no Windows e ver
+      # o efeito refletido no container sem precisar rebuildar a imagem.
+      # Isso é específico de desenvolvimento; a imagem de produção (Módulo
+      # futuro de deploy) não usa volume, usa o código já copiado no build.
+      - ./backend/src:/app/src
+      - ./backend/alembic:/app/alembic
+      - ./backend/scripts:/app/scripts
+      - ./backend/tests:/app/tests
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command:
+      [
+        "uvicorn",
+        "src.presentation.api.main:app",
+        "--host",
+        "0.0.0.0",
+        "--port",
+        "8000",
+        "--reload"
+      ]
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: campanhaos_frontend
+    restart: unless-stopped
+    environment:
+      # Vite só expõe variáveis de ambiente ao código do navegador se
+      # tiverem o prefixo VITE_ — é uma proteção do próprio Vite contra
+      # vazar segredos do servidor sem querer para o bundle público.
+      VITE_API_URL: http://localhost:8000/api/v1
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend/src:/app/src
+      - ./frontend/index.html:/app/index.html
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:

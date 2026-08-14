@@ -1,0 +1,41 @@
+name: Backup do Banco de Dados (Produção)
+
+# Roda todo dia às 03:00 UTC (00:00 no horário de Brasília) + permite
+# disparo manual (workflow_dispatch) para testar sem esperar o horário
+# agendado.
+on:
+  schedule:
+    - cron: "0 3 * * *"
+  workflow_dispatch:
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v4
+
+      - name: Instalar cliente PostgreSQL (pg_dump)
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+
+      - name: Rodar backup
+        env:
+          # Configurar como Secret do repositório (Settings > Secrets and
+          # variables > Actions) — NUNCA como variável de ambiente comum.
+          # É a URL de conexão do superuser do Postgres de produção
+          # (Railway), a mesma usada em MIGRATION_DATABASE_URL.
+          MIGRATION_DATABASE_URL: ${{ secrets.PRODUCTION_MIGRATION_DATABASE_URL }}
+        run: |
+          chmod +x backend/scripts/backup_database.sh
+          cd backend && ../backend/scripts/backup_database.sh
+
+      - name: Publicar backup como artefato
+        uses: actions/upload-artifact@v4
+        with:
+          name: campanhaos-backup-${{ github.run_id }}
+          path: backend/*.dump
+          # 30 dias de retenção — equilíbrio entre ter histórico
+          # suficiente pra recuperar de um problema notado com atraso, e
+          # não acumular armazenamento indefinidamente (GitHub Actions
+          # tem limite de espaço para artefatos por conta/plano).
+          retention-days: 30

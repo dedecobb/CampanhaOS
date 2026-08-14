@@ -1,0 +1,50 @@
+# syntax=docker/dockerfile:1
+#
+# Dockerfile dedicado a PRODUÇÃO (Railway) — cópia dos stages "builder" e
+# "runtime" do Dockerfile principal, SEM o stage "dev" no final.
+#
+# Por quê um arquivo separado em vez de usar --target no Dockerfile
+# principal: o Railway não suporta selecionar um stage específico de um
+# Dockerfile multi-stage (confirmado na documentação/comunidade deles) —
+# sem essa seleção, ele buildaria o ÚLTIMO stage do arquivo, que no nosso
+# Dockerfile principal é o "dev" (maior, com ferramentas de teste). Manter
+# os dois arquivos em vez de um "if" complexo é mais simples de auditar.
+#
+# IMPORTANTE: se o Dockerfile principal mudar (novas dependências de
+# sistema, etc.), replicar a mudança aqui também — os dois precisam ficar
+# em sincronia manualmente.
+
+FROM python:3.12-slim AS builder
+
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY pyproject.toml ./
+RUN pip install --no-cache-dir --upgrade pip \
+    && pip install --no-cache-dir .
+
+FROM python:3.12-slim AS runtime
+
+WORKDIR /app
+
+RUN addgroup --system app && adduser --system --ingroup app app
+
+COPY --from=builder /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages
+COPY --from=builder /usr/local/bin /usr/local/bin
+
+COPY ./src ./src
+COPY ./alembic ./alembic
+COPY ./scripts ./scripts
+COPY pyproject.toml alembic.ini ./
+
+RUN chown -R app:app /app
+USER app
+
+# Sem EXPOSE de porta fixa nem CMD com porta fixa aqui — o Railway injeta
+# a porta real via variável de ambiente $PORT, dinamicamente. O comando de
+# start real (com $PORT e a migração encadeada) fica em railway.json, não
+# neste Dockerfile — assim o mesmo Dockerfile continua "correto" mesmo se
+# um dia rodar em outra plataforma com convenção de porta diferente.
