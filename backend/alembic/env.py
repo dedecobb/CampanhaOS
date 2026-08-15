@@ -48,26 +48,41 @@ def run_migrations_offline() -> None:
 
 
 def do_run_migrations(connection: Connection) -> None:
+    print(">>> [DIAGNÓSTICO] Conexão obtida, configurando o contexto do Alembic...", flush=True)
     context.configure(connection=connection, target_metadata=target_metadata)
+    print(">>> [DIAGNÓSTICO] Contexto configurado, iniciando transação...", flush=True)
     with context.begin_transaction():
+        print(">>> [DIAGNÓSTICO] Transação iniciada, rodando as migrações...", flush=True)
         context.run_migrations()
+        print(">>> [DIAGNÓSTICO] Migrações concluídas, saindo da transação...", flush=True)
 
 
 async def run_migrations_online() -> None:
     """Conecta de verdade ao banco (async) e aplica as migrações."""
+    print(">>> [DIAGNÓSTICO] Criando engine assíncrona...", flush=True)
     connectable = async_engine_from_config(
         config.get_section(config.config_ini_section, {}),
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
+        # Timeout de conexão curto: se não conseguir conectar ao Postgres
+        # em 10s, falha com erro claro em vez de ficar pendurado.
+        connect_args={"timeout": 10, "command_timeout": 20},
     )
 
+    print(">>> [DIAGNÓSTICO] Engine criada, tentando conectar...", flush=True)
     async with connectable.connect() as connection:
+        print(">>> [DIAGNÓSTICO] CONECTADO ao banco. Rodando migrações...", flush=True)
         await connection.run_sync(do_run_migrations)
 
+    print(">>> [DIAGNÓSTICO] Finalizando engine...", flush=True)
     await connectable.dispose()
+    print(">>> [DIAGNÓSTICO] Concluído com sucesso.", flush=True)
 
 
 if context.is_offline_mode():
     run_migrations_offline()
 else:
-    asyncio.run(run_migrations_online())
+    # Timeout de segurança: se travar em qualquer ponto, desiste em 30s
+    # com um erro claro (TimeoutError), em vez de ficar pendurado até o
+    # Railway desistir sozinho depois de 5 minutos sem informação nenhuma.
+    asyncio.run(asyncio.wait_for(run_migrations_online(), timeout=30))
