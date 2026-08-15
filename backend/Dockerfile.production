@@ -28,6 +28,11 @@ RUN pip install --no-cache-dir --upgrade pip \
 
 FROM python:3.12-slim AS runtime
 
+# Sem isso, a saída do Python pode ficar "presa" no buffer dentro do
+# container, escondendo logs (inclusive erros) até o processo travar ou
+# morrer — clássico problema de "container não mostra log nenhum".
+ENV PYTHONUNBUFFERED=1
+
 WORKDIR /app
 
 RUN addgroup --system app && adduser --system --ingroup app app
