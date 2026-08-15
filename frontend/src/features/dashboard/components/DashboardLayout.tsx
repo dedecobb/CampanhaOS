@@ -16,6 +16,15 @@ export function DashboardLayout() {
           <Link to="/eleitores" className="block rounded-md px-3 py-2 text-sm hover:bg-accent">
             Eleitores
           </Link>
+          <Link to="/liderancas" className="block rounded-md px-3 py-2 text-sm hover:bg-accent">
+            Lideranças
+          </Link>
+          <Link to="/agenda" className="block rounded-md px-3 py-2 text-sm hover:bg-accent">
+            Agenda
+          </Link>
+          <Link to="/financeiro" className="block rounded-md px-3 py-2 text-sm hover:bg-accent">
+            Financeiro
+          </Link>
         </nav>
       </aside>
 

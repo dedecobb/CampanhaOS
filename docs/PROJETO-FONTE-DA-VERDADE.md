@@ -2,7 +2,7 @@
 
 **Última atualização:** 06/08/2026
 **Fase atual:** Fase 2 em andamento
-**Módulo em desenvolvimento:** nenhum (Módulo de Deploy concluído — configuração pronta, validação real de deploy pendente do usuário; próximo: Frontend de Lideranças/Agenda/Financeiro)
+**Módulo em desenvolvimento:** nenhum (Módulo de Deploy CONCLUÍDO E VALIDADO EM PRODUÇÃO REAL — backend no Railway, frontend no Vercel, ambos respondendo; próximo: Frontend de Lideranças/Agenda/Financeiro)
 
 ---
 
@@ -135,7 +135,7 @@ frontend/src/{features, shared, routes}/
 | 6 | Financeiro (básico) | ✅ Concluído e validado end-to-end | Módulo 1 | CRUD + resumo/saldo (Decimal, CHECK constraint) |
 | 7 | Billing (Stripe/MP/PIX) + painel super-admin | ✅ Concluído — modelo de dados + painel; integração real com gateway de pagamento adiada por decisão (ver ADR-009) | Módulo 1 | Auth dupla (usuário/super-admin), RLS seletivo, `PlatformAdmin` separado de `User` |
 | 8 | IA multi-provedor + RAG | 🔲 Não iniciado | Módulos 2, 5 | Adiado — ver priorização abaixo |
-| — | **Módulo de Deploy** (inserido por decisão de negócio, 06/08) | 🟡 Configuração pronta — validação real do deploy pendente | Módulo 0 | Railway (backend+Postgres+Redis) + Vercel (frontend). Ver `RUNBOOK-DEPLOY.md` |
+| — | **Módulo de Deploy** (inserido por decisão de negócio, 06/08) | ✅ Validado em produção real — backend Railway + frontend Vercel, ambos respondendo | Módulo 0 | Ver seção 6.9 (atualizada) e `RUNBOOK-DEPLOY.md`. URLs: backend `campanhaos-production.up.railway.app`, frontend `campanha-jf8fmq31g-dedecobbs-projects.vercel.app` |
 | — | **Frontend: Lideranças, Agenda, Financeiro** (inserido por decisão de negócio, 06/08) | 🔲 Não iniciado | Módulos 3, 4, 6, 5 | **Próximo módulo a ser desenvolvido** — necessário antes do piloto |
 | 9+ | WhatsApp oficial, app cabo eleitoral, monitoramento, pesquisas, jurídico | 🔲 Não iniciado | Conforme priorização | Depois do piloto |
 
@@ -306,7 +306,19 @@ frontend/src/{features, shared, routes}/
 
 **Transparência sobre o que NÃO pude validar:** não tenho acesso a Railway/Vercel/GitHub Actions reais — todo este módulo foi escrito e revisado estaticamente, sem execução real (diferente de todos os módulos de código anteriores, onde eu conseguia rodar testes). A validação real é 100% do usuário, seguindo o runbook.
 
-**Risco explicitamente sinalizado:** incerteza sobre se o usuário administrador do Postgres gerenciado do Railway tem privilégio `CREATE ROLE` (necessário para a migração `0002` criar o `campanhaos_app`). Se não tiver, vai precisar de ajuste específico para esse ambiente — só descobrimos rodando de verdade.
+**ATUALIZAÇÃO 06/08 — validação real concluída, com aprendizados importantes:**
+
+O deploy real revelou vários bugs que a validação estática não conseguiria pegar. Lição central, válida pra qualquer módulo futuro que envolva Railway: **o `railway.json` do repositório sempre sobrescreve qualquer configuração feita na tela do painel** — editar pela interface visual não tem efeito nenhum enquanto o campo equivalente existir no arquivo. Isso causou a maior parte do tempo de debug (comando de início, healthcheck, tudo precisou ser configurado via arquivo, não pela tela).
+
+**Bugs reais encontrados e corrigidos durante o deploy:**
+1. Variáveis de ambiente do Railway inicialmente copiadas do `.env` local (senhas/hosts que só existem no Docker local) — corrigido com valores reais de produção
+2. Porta do backend não fixada — Railway não detecta target de Dockerfile multi-stage nem porta automaticamente sem `EXPOSE` explícito
+3. `railway.json` sobrescrevendo configuração da tela (comando de início E healthcheck) — causa raiz da maior parte do tempo gasto
+4. `tsconfig.node.json`: `allowImportingTsExtensions` conflitando com `composite: true` (só aparece no `tsc -b` real, não no `tsc --noEmit` usado na validação local do Módulo 5)
+5. `tsconfig.json`: `ignoreDeprecations: "6.0"` inválido na versão de TypeScript real do ambiente de build (diferente da usada na validação local) — corrigido removendo `baseUrl` inteiramente
+6. `vite.config.ts`/`vitest`: conflito de tipos entre a cópia do Vite usada pelo `vitest` e a cópia direta do projeto — corrigido separando `vitest.config.ts` de `vite.config.ts` (padrão oficial do Vitest via `mergeConfig`)
+
+**Padrão que se repetiu bastante:** minha validação local (rodando `tsc`/testes num ambiente que eu controlo) não pegou vários desses bugs, porque o ambiente de build real (Vercel) usa versões/configurações ligeiramente diferentes. Isso não invalida a prática de validar antes de entregar — só confirma que validação estática nunca substitui 100% a execução real no ambiente de destino.
 
 ---
 
@@ -391,12 +403,11 @@ Diagrama ER conceitual completo (incluindo as entidades ainda não implementadas
 
 ## 9. Próximo Passo
 
-**Módulo de Deploy: configuração pronta, validação real é sua.** Antes de seguir:
-1. Commit no repositório (sugestão: `feat: módulo de deploy - Railway + Vercel, backup, Sentry`).
-2. Salvar a versão atual deste documento junto no commit.
-3. **Seguir o `RUNBOOK-DEPLOY.md` passo a passo** — é o mais importante antes de continuar desenvolvendo, porque valida que tudo que construímos até aqui roda de verdade fora do seu Docker local. Me chama a qualquer momento durante esse processo, principalmente se a migração falhar no Railway (ver risco sinalizado na seção 6.9).
+**Piloto no ar, em produção real.** Antes de seguir:
+1. Commit final de tudo que foi ajustado durante o deploy (railway.json, tsconfig.json, tsconfig.node.json, vite.config.ts, vitest.config.ts, package.json).
+2. Salvar a versão atual deste documento.
+3. Testar o fluxo completo end-to-end pelo frontend real (registrar tenant, logar, CRUD de eleitores) — se ainda não fez.
 
 **Próxima conversa/sessão deve:**
-1. Você faz upload deste arquivo (versão atualizada).
-2. Me conta como foi o deploy real (se rodou liso ou se apareceu algum erro pra resolvermos).
-3. Iniciamos o **Frontend de Lideranças, Agenda e Financeiro**: deve ser mais rápido que o Módulo 5 original — a base (auth, roteamento, componentes, padrão de hooks) já existe, é replicar o padrão de `features/voters/` para os três módulos que faltam.
+1. Você faz upload deste arquivo.
+2. Iniciamos o **Frontend de Lideranças, Agenda e Financeiro** — as telas que faltam pro piloto usar o sistema por completo no dia a dia.
