@@ -43,8 +43,10 @@ COPY pyproject.toml alembic.ini ./
 RUN chown -R app:app /app
 USER app
 
-# Sem EXPOSE de porta fixa nem CMD com porta fixa aqui — o Railway injeta
-# a porta real via variável de ambiente $PORT, dinamicamente. O comando de
-# start real (com $PORT e a migração encadeada) fica em railway.json, não
-# neste Dockerfile — assim o mesmo Dockerfile continua "correto" mesmo se
-# um dia rodar em outra plataforma com convenção de porta diferente.
+# Porta fixa (8000), a mesma configurada manualmente no painel de
+# "Public Networking" do Railway. Optamos por porta fixa em vez de
+# depender da variável dinâmica $PORT do Railway — sem essa declaração
+# explícita, o Railway não conseguiu detectar a porta sozinho e criou um
+# descompasso real entre o que o app escutava e o que o roteamento
+# público esperava (ver changelog do documento fonte da verdade).
+EXPOSE 8000
