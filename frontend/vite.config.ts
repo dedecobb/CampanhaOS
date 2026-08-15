@@ -1,7 +1,11 @@
-/// <reference types="vitest/config" />
 import react from "@vitejs/plugin-react";
 import path from "node:path";
-import { defineConfig } from "vite";
+// `defineConfig` vem de "vitest/config", não de "vite" — é a forma
+// oficialmente recomendada pelo Vitest para o campo `test` (abaixo) ser
+// reconhecido pelo TypeScript. O comentário de referência de tipos que
+// eu tinha usado antes não resolvia de forma confiável em todo ambiente
+// de build (funcionava localmente, mas não no build do Vercel).
+import { defineConfig } from "vitest/config";
 
 // https://vite.dev/config/
 export default defineConfig({
