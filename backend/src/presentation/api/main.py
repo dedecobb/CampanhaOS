@@ -8,9 +8,13 @@ routers de cada versão da API. Toda lógica real vive em `application/` e
 HTTP <-> casos de uso.
 """
 
+print(">>> [DIAGNÓSTICO] Iniciando carregamento de main.py...", flush=True)
+
 import sentry_sdk
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+
+print(">>> [DIAGNÓSTICO] Imports de terceiros OK, importando módulos do projeto...", flush=True)
 
 from src.application.auth.exceptions import ApplicationError
 from src.config.settings import get_settings
@@ -28,12 +32,15 @@ from src.presentation.api.v1.routers import (
     voters,
 )
 
+print(">>> [DIAGNÓSTICO] Todos os imports OK. Carregando Settings...", flush=True)
 settings = get_settings()
+print(">>> [DIAGNÓSTICO] Settings carregado. Ambiente:", settings.environment, flush=True)
 
 # Sentry: só inicializa se um DSN de verdade estiver configurado — em
 # desenvolvimento local, SENTRY_DSN fica vazio no .env.example de
 # propósito, então isso não faz nada localmente, sem custo nenhum.
 if settings.sentry_dsn:
+    print(">>> [DIAGNÓSTICO] Inicializando Sentry...", flush=True)
     sentry_sdk.init(
         dsn=settings.sentry_dsn,
         environment=settings.environment,
@@ -43,6 +50,10 @@ if settings.sentry_dsn:
         # Ajustar para baixo (ex: 0.1) se o volume de tráfego crescer.
         traces_sample_rate=1.0,
     )
+else:
+    print(">>> [DIAGNÓSTICO] SENTRY_DSN não configurado, pulando Sentry.", flush=True)
+
+print(">>> [DIAGNÓSTICO] Criando instância do FastAPI...", flush=True)
 
 app = FastAPI(
     title=settings.app_name,
@@ -80,3 +91,5 @@ app.include_router(finance.router, prefix=settings.api_v1_prefix)
 app.include_router(admin_auth.router, prefix=settings.api_v1_prefix)
 app.include_router(admin_tenants.router, prefix=settings.api_v1_prefix)
 app.include_router(admin_billing.router, prefix=settings.api_v1_prefix)
+
+print(">>> [DIAGNÓSTICO] main.py carregado com sucesso, app FastAPI pronto.", flush=True)
