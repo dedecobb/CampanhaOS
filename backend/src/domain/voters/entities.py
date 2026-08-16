@@ -50,6 +50,7 @@ class Voter:
     city: str | None
     state: str | None
     postal_code: str | None
+    neighborhood: str | None
     latitude: float | None
     longitude: float | None
     tags: list[str]
@@ -72,6 +73,7 @@ class Voter:
         city: str | None = None,
         state: str | None = None,
         postal_code: str | None = None,
+        neighborhood: str | None = None,
         latitude: float | None = None,
         longitude: float | None = None,
         tags: list[str] | None = None,
@@ -93,6 +95,7 @@ class Voter:
             city=city.strip() if city else None,
             state=state.strip().upper() if state else None,  # sigla de UF, ex: "RJ" — normaliza maiúscula
             postal_code=postal_code.strip() if postal_code else None,
+            neighborhood=neighborhood.strip() if neighborhood else None,
             latitude=latitude,
             longitude=longitude,
             tags=sorted(set(tags)) if tags else [],  # sem duplicatas, ordem estável
@@ -133,6 +136,7 @@ class Voter:
         city: str | None = None,
         state: str | None = None,
         postal_code: str | None = None,
+        neighborhood: str | None = None,
         latitude: float | None = None,
         longitude: float | None = None,
         tags: list[str] | None = None,
@@ -166,6 +170,8 @@ class Voter:
             self.state = state.strip().upper() or None
         if postal_code is not None:
             self.postal_code = postal_code.strip() or None
+        if neighborhood is not None:
+            self.neighborhood = neighborhood.strip() or None
         if latitude is not None:
             self.latitude = latitude
         if longitude is not None:

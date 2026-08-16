@@ -33,6 +33,7 @@ export function VoterFormPage() {
       city: values.city || null,
       state: values.state || null,
       postal_code: values.postal_code || null,
+      neighborhood: values.neighborhood || null,
       tags,
       notes: values.notes || null,
     };

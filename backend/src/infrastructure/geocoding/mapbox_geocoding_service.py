@@ -31,6 +31,7 @@ class MapboxGeocodingService(GeocodingService):
         city: str | None = None,
         state: str | None = None,
         postal_code: str | None = None,
+        neighborhood: str | None = None,
     ) -> Coordinates | None:
         if not address_line or not address_line.strip():
             return None
@@ -50,6 +51,8 @@ class MapboxGeocodingService(GeocodingService):
             params["region"] = state.strip()
         if postal_code:
             params["postcode"] = postal_code.strip()
+        if neighborhood:
+            params["neighborhood"] = neighborhood.strip()
 
         try:
             async with httpx.AsyncClient(timeout=self._timeout_seconds) as client:

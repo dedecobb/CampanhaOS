@@ -21,6 +21,7 @@ function voterToFormValues(voter: Voter | undefined): VoterFormValues {
     city: voter?.city ?? "",
     state: voter?.state ?? "",
     postal_code: voter?.postal_code ?? "",
+    neighborhood: voter?.neighborhood ?? "",
     tags: voter?.tags.join(", ") ?? "",
     notes: voter?.notes ?? "",
   };
@@ -74,6 +75,15 @@ export function VoterForm({ initialVoter, onSubmit, isSubmitting, submitLabel }:
       <div className="space-y-2">
         <Label htmlFor="address">Endereço</Label>
         <Input id="address" value={values.address} onChange={(e) => updateField("address", e.target.value)} />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="neighborhood">Bairro</Label>
+        <Input
+          id="neighborhood"
+          value={values.neighborhood}
+          onChange={(e) => updateField("neighborhood", e.target.value)}
+        />
       </div>
 
       <div className="grid grid-cols-[1fr_auto_auto] gap-4">

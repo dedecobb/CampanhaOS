@@ -29,6 +29,7 @@ class SqlAlchemyVoterRepository(VoterRepository):
                 city=voter.city,
                 state=voter.state,
                 postal_code=voter.postal_code,
+                neighborhood=voter.neighborhood,
                 latitude=voter.latitude,
                 longitude=voter.longitude,
                 tags=voter.tags,
@@ -46,6 +47,7 @@ class SqlAlchemyVoterRepository(VoterRepository):
             existing.city = voter.city
             existing.state = voter.state
             existing.postal_code = voter.postal_code
+            existing.neighborhood = voter.neighborhood
             existing.latitude = voter.latitude
             existing.longitude = voter.longitude
             existing.tags = voter.tags
@@ -133,6 +135,7 @@ class SqlAlchemyVoterRepository(VoterRepository):
             city=model.city,
             state=model.state,
             postal_code=model.postal_code,
+            neighborhood=model.neighborhood,
             latitude=model.latitude,
             longitude=model.longitude,
             tags=list(model.tags),

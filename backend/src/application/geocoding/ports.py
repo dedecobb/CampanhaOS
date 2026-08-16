@@ -26,6 +26,7 @@ class GeocodingService(ABC):
         city: str | None = None,
         state: str | None = None,
         postal_code: str | None = None,
+        neighborhood: str | None = None,
     ) -> Coordinates | None:
         """
         Recebe os campos do endereço SEPARADOS (não uma string única

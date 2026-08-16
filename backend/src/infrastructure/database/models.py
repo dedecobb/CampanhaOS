@@ -232,6 +232,7 @@ class VoterModel(TimestampMixin, Base):
     city: Mapped[str | None] = mapped_column(String(255))
     state: Mapped[str | None] = mapped_column(String(2))
     postal_code: Mapped[str | None] = mapped_column(String(20))
+    neighborhood: Mapped[str | None] = mapped_column(String(255))
     latitude: Mapped[float | None]
     longitude: Mapped[float | None]
     tags: Mapped[list[str]] = mapped_column(ARRAY(String), nullable=False, default=list)

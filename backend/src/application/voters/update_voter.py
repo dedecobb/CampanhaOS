@@ -38,14 +38,20 @@ class UpdateVoterUseCase:
                     raise LeadershipNotFoundError
             leadership_kwargs["leadership_id"] = input_data.leadership_id
 
-        # Detecta ANTES de aplicar a atualização se algum dos 4 campos que
-        # compõem `geocoding_query` está sendo alterado nesta chamada —
+        # Detecta ANTES de aplicar a atualização se algum dos 5 campos que
+        # afetam a geocodificação está sendo alterado nesta chamada —
         # precisa ser feito antes de `update_details`, ou perderíamos a
         # informação de "o que mudou nesta chamada" (depois de aplicado,
         # os valores novo e antigo ficam indistinguíveis).
         address_fields_changed = any(
             field is not None
-            for field in (input_data.address, input_data.city, input_data.state, input_data.postal_code)
+            for field in (
+                input_data.address,
+                input_data.city,
+                input_data.state,
+                input_data.postal_code,
+                input_data.neighborhood,
+            )
         )
 
         voter.update_details(
@@ -55,8 +61,9 @@ class UpdateVoterUseCase:
             city=input_data.city,
             state=input_data.state,
             postal_code=input_data.postal_code,
+            neighborhood=input_data.neighborhood,
             # Só aplica coordenada manual aqui — a automática (geocodificada)
-            # é setada depois, abaixo, usando o geocoding_query já atualizado.
+            # é setada depois, abaixo, usando os campos já atualizados.
             latitude=input_data.latitude,
             longitude=input_data.longitude,
             tags=input_data.tags,
@@ -68,7 +75,7 @@ class UpdateVoterUseCase:
         # Re-geocodifica automaticamente só se algum campo de endereço
         # mudou NESTA chamada e nenhuma coordenada manual veio junto —
         # evita geocodificar de novo em todo PATCH que não mexe em
-        # endereço/cidade/estado/CEP (ex: só atualizando o telefone).
+        # endereço/cidade/estado/CEP/bairro (ex: só atualizando o telefone).
         # Campos passados SEPARADOS — ver GeocodingService.geocode.
         if address_fields_changed and input_data.latitude is None and input_data.longitude is None:
             if voter.has_geocodable_address:
@@ -77,6 +84,7 @@ class UpdateVoterUseCase:
                     city=voter.city,
                     state=voter.state,
                     postal_code=voter.postal_code,
+                    neighborhood=voter.neighborhood,
                 )
                 if coordinates is not None:
                     voter.latitude = coordinates.latitude

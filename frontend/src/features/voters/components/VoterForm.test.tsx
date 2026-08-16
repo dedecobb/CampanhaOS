@@ -13,6 +13,7 @@ const fullVoter: Voter = {
   city: "Cuiabá",
   state: "MT",
   postal_code: "78000-000",
+  neighborhood: "Centro",
   latitude: null,
   longitude: null,
   tags: ["lideranca", "zona-norte"],

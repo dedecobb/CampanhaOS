@@ -36,6 +36,7 @@ class CreateVoterInput:
     city: str | None = None
     state: str | None = None
     postal_code: str | None = None
+    neighborhood: str | None = None
     latitude: float | None = None
     longitude: float | None = None
     tags: list[str] = field(default_factory=list)
@@ -54,6 +55,7 @@ class UpdateVoterInput:
     city: str | None = None
     state: str | None = None
     postal_code: str | None = None
+    neighborhood: str | None = None
     latitude: float | None = None
     longitude: float | None = None
     tags: list[str] | None = None
@@ -98,6 +100,7 @@ class VoterOutput:
     city: str | None
     state: str | None
     postal_code: str | None
+    neighborhood: str | None
     latitude: float | None
     longitude: float | None
     tags: list[str]

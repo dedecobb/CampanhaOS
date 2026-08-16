@@ -36,6 +36,7 @@ class CreateVoterUseCase:
             city=input_data.city,
             state=input_data.state,
             postal_code=input_data.postal_code,
+            neighborhood=input_data.neighborhood,
             latitude=input_data.latitude,
             longitude=input_data.longitude,
             tags=input_data.tags,
@@ -54,6 +55,7 @@ class CreateVoterUseCase:
                 city=voter.city,
                 state=voter.state,
                 postal_code=voter.postal_code,
+                neighborhood=voter.neighborhood,
             )
             if coordinates is not None:
                 voter.latitude = coordinates.latitude
