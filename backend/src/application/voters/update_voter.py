@@ -69,9 +69,15 @@ class UpdateVoterUseCase:
         # mudou NESTA chamada e nenhuma coordenada manual veio junto —
         # evita geocodificar de novo em todo PATCH que não mexe em
         # endereço/cidade/estado/CEP (ex: só atualizando o telefone).
+        # Campos passados SEPARADOS — ver GeocodingService.geocode.
         if address_fields_changed and input_data.latitude is None and input_data.longitude is None:
-            if voter.geocoding_query:
-                coordinates = await self._geocoding_service.geocode(voter.geocoding_query)
+            if voter.has_geocodable_address:
+                coordinates = await self._geocoding_service.geocode(
+                    address_line=voter.address,  # type: ignore[arg-type]
+                    city=voter.city,
+                    state=voter.state,
+                    postal_code=voter.postal_code,
+                )
                 if coordinates is not None:
                     voter.latitude = coordinates.latitude
                     voter.longitude = coordinates.longitude

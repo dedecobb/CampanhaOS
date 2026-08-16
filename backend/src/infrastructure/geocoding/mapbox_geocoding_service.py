@@ -1,15 +1,23 @@
 """
-Implementação concreta de GeocodingService usando a API de Geocoding do
-Mapbox (https://docs.mapbox.com/api/search/geocoding/).
-"""
+Implementação concreta de GeocodingService usando a API de Geocoding v6
+do Mapbox, com ENTRADA ESTRUTURADA
+(https://docs.mapbox.com/api/search/geocoding/#forward-geocoding-with-structured-input).
 
-from urllib.parse import quote
+Por que v6 estruturada, e não v5 com uma string única concatenada (nossa
+primeira tentativa): passar "endereço, cidade, estado, CEP, Brasil" como
+um texto livre único deixa o Mapbox tendo que ADIVINHAR qual pedaço da
+string é rua, qual é cidade, qual é estado — e essa adivinhação erra,
+inclusive colocando o resultado no estado errado (foi exatamente o que
+aconteceu na prática, ver documento fonte da verdade). Com entrada
+estruturada, cada parte vai num parâmetro próprio (`address_line1`,
+`place`, `region`, `postcode`) — sem adivinhação nenhuma.
+"""
 
 import httpx
 
 from src.application.geocoding.ports import Coordinates, GeocodingService
 
-_MAPBOX_GEOCODING_URL = "https://api.mapbox.com/geocoding/v5/mapbox.places/{encoded_address}.json"
+_MAPBOX_GEOCODING_V6_URL = "https://api.mapbox.com/search/geocode/v6/forward"
 
 
 class MapboxGeocodingService(GeocodingService):
@@ -17,22 +25,35 @@ class MapboxGeocodingService(GeocodingService):
         self._access_token = access_token
         self._timeout_seconds = timeout_seconds
 
-    async def geocode(self, address: str) -> Coordinates | None:
-        if not address or not address.strip():
+    async def geocode(
+        self,
+        address_line: str,
+        city: str | None = None,
+        state: str | None = None,
+        postal_code: str | None = None,
+    ) -> Coordinates | None:
+        if not address_line or not address_line.strip():
             return None
 
-        url = _MAPBOX_GEOCODING_URL.format(encoded_address=quote(address.strip()))
-        params = {
+        params: dict[str, str | int] = {
             "access_token": self._access_token,
+            "address_line1": address_line.strip(),
+            "country": "br",
             "limit": 1,
-            # Restringe ao Brasil — evita resultado geocodificado num
-            # país errado para um endereço ambíguo/incompleto.
-            "country": "BR",
         }
+        # Só inclui os parâmetros estruturados que de fato temos — o
+        # Mapbox lida bem com parâmetros ausentes, não precisa mandar
+        # string vazia.
+        if city:
+            params["place"] = city.strip()
+        if state:
+            params["region"] = state.strip()
+        if postal_code:
+            params["postcode"] = postal_code.strip()
 
         try:
             async with httpx.AsyncClient(timeout=self._timeout_seconds) as client:
-                response = await client.get(url, params=params)
+                response = await client.get(_MAPBOX_GEOCODING_V6_URL, params=params)
                 response.raise_for_status()
                 data = response.json()
         except (httpx.HTTPError, ValueError):
@@ -45,8 +66,7 @@ class MapboxGeocodingService(GeocodingService):
         if not features:
             return None
 
-        # Mapbox retorna [longitude, latitude] (ordem GeoJSON), invertido
-        # em relação à ordem "natural" (latitude, longitude) — erro fácil
-        # de cometer se copiar sem prestar atenção.
-        longitude, latitude = features[0]["center"]
+        # v6 retorna GeoJSON padrão: geometry.coordinates = [longitude, latitude]
+        # (mesma ordem "invertida" da v5, mas em outro caminho do JSON).
+        longitude, latitude = features[0]["geometry"]["coordinates"]
         return Coordinates(latitude=latitude, longitude=longitude)

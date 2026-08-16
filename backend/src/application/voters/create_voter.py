@@ -44,13 +44,17 @@ class CreateVoterUseCase:
             leadership_id=input_data.leadership_id,
         )
 
-        # Só geocodifica automaticamente se houver o que geocodificar E
-        # nenhuma coordenada manual foi passada — respeita quem prefere
-        # fornecer a coordenada exata na mão. `geocoding_query` combina
-        # endereço + cidade + estado + CEP (ver Voter, domínio) — muito
-        # mais preciso do que geocodificar só o endereço isolado.
-        if voter.geocoding_query and voter.latitude is None and voter.longitude is None:
-            coordinates = await self._geocoding_service.geocode(voter.geocoding_query)
+        # Só geocodifica automaticamente se houver endereço E nenhuma
+        # coordenada manual foi passada — respeita quem prefere fornecer
+        # a coordenada exata na mão. Campos passados SEPARADOS (não uma
+        # string concatenada) — ver GeocodingService.geocode.
+        if voter.has_geocodable_address and voter.latitude is None and voter.longitude is None:
+            coordinates = await self._geocoding_service.geocode(
+                address_line=voter.address,  # type: ignore[arg-type]
+                city=voter.city,
+                state=voter.state,
+                postal_code=voter.postal_code,
+            )
             if coordinates is not None:
                 voter.latitude = coordinates.latitude
                 voter.longitude = coordinates.longitude

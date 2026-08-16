@@ -20,11 +20,24 @@ class Coordinates:
 
 class GeocodingService(ABC):
     @abstractmethod
-    async def geocode(self, address: str) -> Coordinates | None:
+    async def geocode(
+        self,
+        address_line: str,
+        city: str | None = None,
+        state: str | None = None,
+        postal_code: str | None = None,
+    ) -> Coordinates | None:
         """
-        Retorna as coordenadas do endereço, ou `None` se não conseguir
-        geocodificar (endereço não encontrado, erro de rede, etc.) —
-        NUNCA levanta exceção. Geocodificação é uma melhoria, não um
-        requisito: se falhar, quem chama deve seguir em frente sem
-        coordenada, não bloquear a operação (ex: criar um eleitor).
+        Recebe os campos do endereço SEPARADOS (não uma string única
+        concatenada) — implementações devem repassar cada campo pro seu
+        parâmetro próprio na API do provedor, quando o provedor suportar
+        entrada estruturada (Mapbox v6 suporta; concatenar tudo numa
+        string só, como fizemos numa primeira tentativa, gerou resultado
+        impreciso na prática — ver documento fonte da verdade).
+
+        Retorna `None` se não conseguir geocodificar (endereço não
+        encontrado, erro de rede, etc.) — NUNCA levanta exceção.
+        Geocodificação é uma melhoria, não um requisito: se falhar, quem
+        chama deve seguir em frente sem coordenada, não bloquear a
+        operação (ex: criar um eleitor).
         """

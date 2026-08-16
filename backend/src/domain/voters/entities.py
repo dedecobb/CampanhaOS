@@ -120,24 +120,9 @@ class Voter:
         return self.deleted_at is not None
 
     @property
-    def geocoding_query(self) -> str | None:
-        """
-        Monta a string completa usada para geocodificar — combinar
-        endereço + cidade + estado + CEP resolve a ambiguidade que um
-        endereço sozinho tem (ex: "Rua das Flores, 123" existe em
-        centenas de cidades brasileiras diferentes; com cidade/estado/CEP
-        juntos, o geocodificador consegue ser preciso).
-        """
-        if not self.address:
-            return None
-        parts = [self.address]
-        if self.city:
-            parts.append(self.city)
-        if self.state:
-            parts.append(self.state)
-        if self.postal_code:
-            parts.append(self.postal_code)
-        return ", ".join(parts) + ", Brasil"
+    def has_geocodable_address(self) -> bool:
+        """Usado pelos casos de uso para decidir se vale a pena chamar o serviço de geocodificação."""
+        return bool(self.address)
 
     def update_details(
         self,
