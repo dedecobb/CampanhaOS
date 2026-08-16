@@ -26,6 +26,7 @@ from src.application.finance.exceptions import FinanceTransactionNotFoundError
 from src.application.leaderships.exceptions import LeadershipNotFoundError
 from src.application.shared.exceptions import ApplicationError
 from src.application.voters.exceptions import VoterNotFoundError
+from src.application.whatsapp.exceptions import ContactNotOptedInError, WhatsAppContactNotFoundError
 from src.domain.shared.exceptions import DomainError
 
 # Mapeamento explícito de tipo de exceção -> status HTTP. Qualquer
@@ -45,6 +46,11 @@ _APPLICATION_ERROR_STATUS_MAP: dict[type[ApplicationError], int] = {
     AdminTenantNotFoundError: status.HTTP_404_NOT_FOUND,
     PlanNotFoundError: status.HTTP_404_NOT_FOUND,
     InactivePlanError: status.HTTP_409_CONFLICT,
+    WhatsAppContactNotFoundError: status.HTTP_404_NOT_FOUND,
+    # 403, não 400/409 — não é "dado inválido" nem "conflito de estado",
+    # é uma regra de compliance sendo aplicada: essa ação especificamente
+    # não é permitida para este contato (ver ContactNotOptedInError).
+    ContactNotOptedInError: status.HTTP_403_FORBIDDEN,
 }
 
 

@@ -66,6 +66,13 @@ class Settings(BaseSettings):
     # quebrar a criação/edição do eleitor) — ver GeocodingService.
     mapbox_access_token: str | None = None
 
+    # --- WhatsApp (Twilio) ---
+    # Todos opcionais — sem eles, as rotas de WhatsApp simplesmente
+    # retornam erro claro em vez de derrubar a aplicação inteira.
+    twilio_account_sid: str | None = None
+    twilio_auth_token: str | None = None
+    twilio_whatsapp_from_number: str | None = None  # formato "whatsapp:+14155238886"
+
     @property
     def is_production(self) -> bool:
         return self.environment == "production"

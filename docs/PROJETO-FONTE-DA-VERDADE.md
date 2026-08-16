@@ -1,8 +1,8 @@
 # CampanhaOS — Fonte da Verdade do Projeto
 
-**Última atualização:** 06/08/2026
+**Última atualização:** 16/08/2026
 **Fase atual:** Fase 2 em andamento
-**Módulo em desenvolvimento:** nenhum (Módulo de Deploy CONCLUÍDO E VALIDADO EM PRODUÇÃO REAL — backend no Railway, frontend no Vercel, ambos respondendo; próximo: Frontend de Lideranças/Agenda/Financeiro)
+**Módulo em desenvolvimento:** nenhum (WhatsApp opt-in via Twilio — backend concluído e validado, 93 testes passando; falta criar conta Twilio/Meta real para validar webhook em produção. Próximo: telas de frontend restantes — Lideranças/Agenda/Financeiro — ou mapa mental de relacionamentos)
 
 ---
 
@@ -136,7 +136,7 @@ frontend/src/{features, shared, routes}/
 | 7 | Billing (Stripe/MP/PIX) + painel super-admin | ✅ Concluído — modelo de dados + painel; integração real com gateway de pagamento adiada por decisão (ver ADR-009) | Módulo 1 | Auth dupla (usuário/super-admin), RLS seletivo, `PlatformAdmin` separado de `User` |
 | 8 | IA multi-provedor + RAG | 🔲 Não iniciado | Módulos 2, 5 | Adiado — ver priorização abaixo |
 | — | **Módulo de Deploy** (inserido por decisão de negócio, 06/08) | ✅ Validado em produção real — backend Railway + frontend Vercel, ambos respondendo | Módulo 0 | Ver seção 6.9 (atualizada) e `RUNBOOK-DEPLOY.md`. URLs: backend `campanhaos-production.up.railway.app`, frontend `campanha-jf8fmq31g-dedecobbs-projects.vercel.app` |
-| — | **Frontend: Lideranças, Agenda, Financeiro** (inserido por decisão de negócio, 06/08) | 🔲 Não iniciado | Módulos 3, 4, 6, 5 | **Próximo módulo a ser desenvolvido** — necessário antes do piloto |
+| — | **Frontend: Lideranças, Agenda, Financeiro** (inserido por decisão de negócio, 06/08) | ✅ Concluído e validado em produção real | Módulos 3, 4, 6, 5 | 19 arquivos, mesmo padrão de `features/voters/`. Testado pelo usuário em produção (CORS, telas, resumo financeiro) |
 | 9+ | WhatsApp oficial, app cabo eleitoral, monitoramento, pesquisas, jurídico | 🔲 Não iniciado | Conforme priorização | Depois do piloto |
 
 **Legenda:** 🔲 Não iniciado · 🟡 Em andamento · ✅ Concluído e auditado
@@ -322,17 +322,68 @@ O deploy real revelou vários bugs que a validação estática não conseguiria 
 
 ---
 
+### ADR-012 — Geocodificação: Mapbox v6 estruturado + ajuste manual como rede de segurança
+**Decisão:** geocodificação automática de endereço de eleitor via Mapbox Geocoding API v6, com **entrada estruturada** (`address_line1`, `place`, `region`, `postcode`, `neighborhood` como parâmetros separados — não uma string única concatenada). Além disso, um **ajuste manual de pino** (arrastar num mapa) sempre disponível na edição do eleitor, como rede de segurança final.
+**Motivo:** a primeira tentativa (v5, string única concatenada) colocou eleitores no **estado errado** — a v6 estruturada corrigiu a maior parte dos casos, mas ruas internas de condomínio fechado (nome genérico tipo "Rua Três", sem mapeamento público) continuam sem solução automática possível — isso é limite real de cobertura de dado do provedor, não bug de código. Para esses casos, o ajuste manual é a única solução que funciona sempre, independente da qualidade do dado do Mapbox pra aquele lugar específico.
+**Trade-off técnico registrado:** quando o usuário ajusta o pino manualmente, essa coordenada fica "travada" (não é mais sobrescrita por geocodificação automática em edições futuras) — controlado por uma flag `locationManuallyAdjusted` que só existe no estado do formulário do frontend (não persistida no backend). O backend distingue "coordenada manual" de "deixar geocodificar" pela simples presença/ausência de `latitude`/`longitude` no payload da requisição.
+**Status:** Aprovado e implementado.
+
+### 6.10 Mapa de Eleitores (concluído)
+
+**O que foi entregue:**
+- **Domínio:** `Voter` ganhou `city`, `state`, `postal_code`, `neighborhood` (Módulo 2 original só tinha `address` livre)
+- **Geocodificação:** `GeocodingService` (porta) + `MapboxGeocodingService` (Mapbox Geocoding API v6, entrada estruturada) — conectado em `CreateVoterUseCase`/`UpdateVoterUseCase`, nunca bloqueia a operação se falhar
+- **Endpoint dedicado:** `GET /voters/map` — leve, com teto de 1000 registros (não paginado, mas também não "sem limite", respeitando o princípio já documentado do projeto)
+- **Frontend:** tela de mapa (`/mapa`, Mapbox GL JS), formulário de eleitor com campos de endereço estruturado, e `LocationPicker` (pino arrastável) para ajuste manual quando a geocodificação automática não acerta
+- **Migrações:** `0013_add_voter_address_detail`, `0014_add_voter_neighborhood`
+
+**Bugs reais encontrados e corrigidos durante o deploy (fora do ambiente local, só apareceram em produção real):**
+1. `httpx` estava em dependências de teste (`dev`), não em produção — nunca tinha sido usado em código de produção real até a geocodificação
+2. `mapbox_access_token` faltando no `settings.py` que foi de fato enviado pro Railway (arquivo desatualizado)
+3. Nome de revisão do Alembic (`0013_add_address_detail_to_voters`, 33 caracteres) estourou o limite de 32 caracteres da coluna `alembic_version.version_num` — encurtado para `0013_add_voter_address_detail`
+4. Geocodificação v5 (string única) colocou eleitor em estado errado — corrigido migrando para v6 com entrada estruturada
+
+**Limitação registrada conscientemente:** geocodificação automática não tem como acertar 100% dos casos — ruas internas de condomínios fechados, loteamentos não mapeados publicamente, etc. O ajuste manual de pino é a solução definitiva para esses casos, não um "quebra-galho".
+
+---
+
+### ADR-013 — WhatsApp: opt-in obrigatório via BSP (Twilio), nunca disparo em massa
+**Decisão:** integração de WhatsApp através de um BSP (Business Solution Provider) autorizado pela Meta — Twilio na implementação concreta —, com opt-in registrado (`WhatsAppContact`) só quando o CONTATO inicia a conversa. Envio de mensagem exige template pré-aprovado e contato com opt-in ativo — verificação feita no caso de uso (`SendWhatsAppTemplateMessageUseCase`), não confiável só pela camada de API.
+**Motivo:** decisão de compliance tomada em conjunto com o usuário — a Resolução TSE 23.610/2019 (atualizada pra 2026) proíbe explicitamente disparo em massa de mensagens político-eleitorais, e determina que listas de transmissão só valem se o contato "adicionou o número do candidato" por conta própria. Uso indevido já causou cassação de candidatura em pleitos anteriores (2018, 2020, 2022, 2024). BSP em vez de conta Meta direta: reduz fricção de onboarding, continua 100% dentro da API oficial.
+**Trade-off técnico registrado:** webhook do Twilio é endpoint público (sem JWT) — segurança vem da verificação de assinatura HMAC-SHA1 (validada contra o vetor de teste oficial do Twilio), não de autenticação de usuário. Como não há `CurrentUser` nesse endpoint, o contexto de tenant (RLS) precisa ser declarado manualmente — único lugar do projeto onde isso acontece fora do fluxo padrão de `get_current_user`.
+**Limitação de escopo (MVP):** roteamento de tenant no webhook via `tenant_id` na query string da URL configurada manualmente no painel do Twilio — não é autoatendimento, cada campanha nova exige configuração manual. Aceitável para o volume do piloto (1-2 campanhas).
+**Status:** Backend aprovado, implementado e testado (93 testes). Conta Twilio/Meta real ainda não criada pelo usuário — validação end-to-end do webhook em produção pendente.
+
+### 6.11 WhatsApp Opt-in (backend concluído)
+
+**O que foi entregue:**
+- **Domínio:** `WhatsAppContact` (opt-in/opt-out, sempre `opt_in_source="contato_iniciou_conversa"` — sem nenhum caminho de código pra importar lista)
+- **Infraestrutura:** `TwilioWhatsAppSender` (envio via Content API do Twilio), `validate_twilio_signature` (verificação HMAC-SHA1, testada contra o vetor oficial do Twilio)
+- **Aplicação:** `HandleIncomingWhatsAppMessageUseCase` (opt-in/opt-out automático, detecta palavras-chave de descadastro), `SendWhatsAppTemplateMessageUseCase` (trava de compliance: nunca envia sem opt-in ativo, é impossível burlar isso via parâmetro)
+- **API:** `POST /whatsapp/webhook` (público, assinatura verificada), `GET /whatsapp/contacts` e `POST /whatsapp/send` (autenticados, tenant-scoped)
+- **Migração:** `0015_create_whatsapp_contacts` (RLS ativo)
+- **Testes:** 14 novos (93 no total do projeto) — incluindo o teste mais crítico do módulo: enviar mensagem pra contato que perdeu o opt-in é bloqueado com 403, provado via API real, não só no caso de uso isolado
+
+**Bug real encontrado na validação do usuário:** `WhatsAppContactNotFoundError`/`ContactNotOptedInError` faltando no `_APPLICATION_ERROR_STATUS_MAP` do `error_handlers.py` — arquivo desatualizado (mesmo padrão de erro já visto antes na sessão: esquecer de propagar uma mudança em arquivo compartilhado entre módulos).
+
+**Pendente do lado do usuário:** criar conta Twilio (ou outro BSP) + WhatsApp Business Platform, configurar o webhook no painel deles apontando pra `/api/v1/whatsapp/webhook?tenant_id=<uuid>`, testar o fluxo real de opt-in mandando mensagem de verdade.
+
+---
+
 ## 6. Modelagem de Dados (estado atual)
 
 **Implementadas e migradas:**
 - **Módulo 1:** `tenants`, `users`, `roles`, `permissions`, `user_roles`, `role_permissions` — RLS ativo em `users`/`roles`
-- **Módulo 2:** `voters` — RLS ativo, índice GIN em `tags`, `custom_fields` em JSONB
+- **Módulo 2:** `voters` — RLS ativo, índice GIN em `tags`, `custom_fields` em JSONB; `city`/`state`/`postal_code`/`neighborhood` adicionados posteriormente (migrações `0013`, `0014`) para precisão de geocodificação
 - **Módulo 3:** `leaderships` — RLS ativo; `voters.leadership_id` (FK opcional, `ON DELETE SET NULL`)
 - **Módulo 4:** `events` — RLS ativo; FKs opcionais para `voters` e `leaderships`, duas FKs para `users` (criador/responsável)
 - **Módulo 6:** `finance_transactions` — RLS ativo; `amount NUMERIC(12,2)` com `CHECK CONSTRAINT > 0`
 - **Módulo 7:** `plans` (sem RLS, catálogo global), `subscriptions` (RLS ativo, `UNIQUE(tenant_id)`), `platform_admins` (sem RLS, `UNIQUE(email)` global)
 
-Schema real em `backend/src/infrastructure/database/models.py`. Migrações `0001` a `0012`.
+- **Módulo Geocodificação/Mapa:** `voters` ganhou `city`/`state`/`postal_code`/`neighborhood` (migrações `0013`, `0014`)
+- **Módulo WhatsApp:** `whatsapp_contacts` — RLS ativo, `UNIQUE(tenant_id, phone_number)` (migração `0015`)
+
+Schema real em `backend/src/infrastructure/database/models.py`. Migrações `0001` a `0015`.
 
 **Ainda conceituais, não implementadas:** `AuditLog` (transversal, ainda sem módulo dedicado).
 
@@ -403,11 +454,13 @@ Diagrama ER conceitual completo (incluindo as entidades ainda não implementadas
 
 ## 9. Próximo Passo
 
-**Piloto no ar, em produção real.** Antes de seguir:
-1. Commit final de tudo que foi ajustado durante o deploy (railway.json, tsconfig.json, tsconfig.node.json, vite.config.ts, vitest.config.ts, package.json).
+**Piloto no ar, com mapa de eleitores funcionando (geocodificação automática + ajuste manual).** Antes de seguir:
+1. Commit final de tudo (backend: migrações 0013/0014, geocoding, voters; frontend: LocationPicker, MapPage, VoterForm atualizado).
 2. Salvar a versão atual deste documento.
-3. Testar o fluxo completo end-to-end pelo frontend real (registrar tenant, logar, CRUD de eleitores) — se ainda não fez.
+3. Testar o fluxo completo: cadastrar eleitor com endereço estruturado (cidade/UF/CEP/bairro), conferir a geocodificação automática, e testar o ajuste manual de pino num caso difícil (ex: condomínio).
 
-**Próxima conversa/sessão deve:**
-1. Você faz upload deste arquivo.
-2. Iniciamos o **Frontend de Lideranças, Agenda e Financeiro** — as telas que faltam pro piloto usar o sistema por completo no dia a dia.
+**Próxima conversa/sessão deve escolher entre (nenhuma é bloqueante):**
+1. **Frontend de Lideranças, Agenda e Financeiro** — telas que ainda faltam pro piloto usar o sistema por completo no dia a dia (ainda só acessíveis via Swagger)
+2. **WhatsApp com opt-in** — já desenhado na conversa (webhook, `WhatsAppContact`, envio só pra quem deu opt-in), mas não iniciado — precisa de conta Meta Business Platform primeiro
+3. **Mapa mental de relacionamentos** (lideranças ↔ eleitores) — também já desenhado, não iniciado
+4. Módulos 8 (IA) e 9+ (funcionalidades da Fase 1 ainda não quebradas em módulos)

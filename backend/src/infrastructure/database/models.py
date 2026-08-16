@@ -323,3 +323,28 @@ class PlatformAdminModel(TimestampMixin, Base):
     email: Mapped[str] = mapped_column(String(255), nullable=False)
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+
+
+class WhatsAppContactModel(TimestampMixin, Base):
+    """
+    Registro de opt-in de WhatsApp — RLS ativo (tem tenant_id, é dado de
+    negócio de uma campanha específica, mesmo padrão de voters/events/etc).
+    """
+
+    __tablename__ = "whatsapp_contacts"
+    __table_args__ = (
+        Index("ix_whatsapp_contacts_tenant_id", "tenant_id"),
+        UniqueConstraint("tenant_id", "phone_number", name="uq_whatsapp_contacts_tenant_phone"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    tenant_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False
+    )
+    phone_number: Mapped[str] = mapped_column(String(20), nullable=False)
+    voter_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("voters.id", ondelete="SET NULL"), nullable=True
+    )
+    opted_in_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    opt_in_source: Mapped[str] = mapped_column(String(50), nullable=False)
+    opted_out_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

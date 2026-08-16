@@ -30,6 +30,7 @@ from src.presentation.api.v1.routers import (
     health,
     leaderships,
     voters,
+    whatsapp,
 )
 
 print(">>> [DIAGNÓSTICO] Todos os imports OK. Carregando Settings...", flush=True)
@@ -91,5 +92,6 @@ app.include_router(finance.router, prefix=settings.api_v1_prefix)
 app.include_router(admin_auth.router, prefix=settings.api_v1_prefix)
 app.include_router(admin_tenants.router, prefix=settings.api_v1_prefix)
 app.include_router(admin_billing.router, prefix=settings.api_v1_prefix)
+app.include_router(whatsapp.router, prefix=settings.api_v1_prefix)
 
 print(">>> [DIAGNÓSTICO] main.py carregado com sucesso, app FastAPI pronto.", flush=True)
