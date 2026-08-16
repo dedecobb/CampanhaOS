@@ -45,6 +45,15 @@ dependencies = [
     # reais para a API do Mapbox. Sem essa mudança, a imagem de produção
     # (que só instala as dependências principais) não teria o pacote.
     "httpx>=0.27.0",
+
+    # --- Webhooks de terceiros ---
+    # Necessário para `request.form()` funcionar no FastAPI/Starlette —
+    # o webhook do Twilio manda o corpo como form-urlencoded, não JSON
+    # (diferente de todo outro endpoint do projeto até agora, todos JSON).
+    # Sem esse pacote, `request.form()` levanta uma exceção que quebra o
+    # webhook silenciosamente (só aparece no log do servidor, nunca numa
+    # resposta HTTP com corpo explicativo).
+    "python-multipart>=0.0.9",
 ]
 
 [project.optional-dependencies]
