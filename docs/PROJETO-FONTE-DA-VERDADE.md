@@ -2,7 +2,7 @@
 
 **Última atualização:** 16/08/2026
 **Fase atual:** Fase 2 em andamento
-**Módulo em desenvolvimento:** nenhum (WhatsApp opt-in via Twilio — backend concluído e validado, 93 testes passando; falta criar conta Twilio/Meta real para validar webhook em produção. Próximo: telas de frontend restantes — Lideranças/Agenda/Financeiro — ou mapa mental de relacionamentos)
+**Módulo em desenvolvimento:** nenhum (WhatsApp opt-in via Twilio — VALIDADO END-TO-END EM PRODUÇÃO REAL, mensagem real recebida e opt-in confirmado; próximo: telas de frontend restantes — Lideranças/Agenda/Financeiro — ou mapa mental de relacionamentos)
 
 ---
 
@@ -352,7 +352,11 @@ O deploy real revelou vários bugs que a validação estática não conseguiria 
 **Motivo:** decisão de compliance tomada em conjunto com o usuário — a Resolução TSE 23.610/2019 (atualizada pra 2026) proíbe explicitamente disparo em massa de mensagens político-eleitorais, e determina que listas de transmissão só valem se o contato "adicionou o número do candidato" por conta própria. Uso indevido já causou cassação de candidatura em pleitos anteriores (2018, 2020, 2022, 2024). BSP em vez de conta Meta direta: reduz fricção de onboarding, continua 100% dentro da API oficial.
 **Trade-off técnico registrado:** webhook do Twilio é endpoint público (sem JWT) — segurança vem da verificação de assinatura HMAC-SHA1 (validada contra o vetor de teste oficial do Twilio), não de autenticação de usuário. Como não há `CurrentUser` nesse endpoint, o contexto de tenant (RLS) precisa ser declarado manualmente — único lugar do projeto onde isso acontece fora do fluxo padrão de `get_current_user`.
 **Limitação de escopo (MVP):** roteamento de tenant no webhook via `tenant_id` na query string da URL configurada manualmente no painel do Twilio — não é autoatendimento, cada campanha nova exige configuração manual. Aceitável para o volume do piloto (1-2 campanhas).
-**Status:** Backend aprovado, implementado e testado (93 testes). Conta Twilio/Meta real ainda não criada pelo usuário — validação end-to-end do webhook em produção pendente.
+**Status:** Backend aprovado, implementado e testado (93 testes). **Validado end-to-end em produção real em 16/08/2026** — mensagem real do WhatsApp → Twilio → webhook → opt-in registrado, confirmado via API.
+
+**ATUALIZAÇÃO 16/08 — dois bugs reais encontrados na validação real, ambos corrigidos:**
+1. `python-multipart` faltando nas dependências — `request.form()` do FastAPI/Starlette exige esse pacote separado, nunca precisamos dele antes porque este é o primeiro endpoint do projeto a receber form-urlencoded em vez de JSON (webhook do Twilio manda assim, não JSON)
+2. **A causa raiz do 403 "assinatura inválida"**: o `uvicorn`, mesmo com `--proxy-headers`, só confia no header `X-Forwarded-Proto` (que diz se a requisição original era HTTPS) se a conexão vier de `127.0.0.1` — como o proxy do Railway não é localhost, o header era ignorado, e a URL reconstruída internamente ficava `http://` em vez de `https://`, fazendo a assinatura do Twilio (calculada sobre a URL `https://`) nunca bater com a nossa. Corrigido adicionando `--forwarded-allow-ips='*'` ao comando de start. **Esse ajuste provavelmente será necessário em qualquer webhook de terceiro futuro atrás do proxy do Railway** — vale lembrar disso de cara da próxima vez, não descobrir de novo do zero.
 
 ### 6.11 WhatsApp Opt-in (backend concluído)
 
@@ -366,7 +370,12 @@ O deploy real revelou vários bugs que a validação estática não conseguiria 
 
 **Bug real encontrado na validação do usuário:** `WhatsAppContactNotFoundError`/`ContactNotOptedInError` faltando no `_APPLICATION_ERROR_STATUS_MAP` do `error_handlers.py` — arquivo desatualizado (mesmo padrão de erro já visto antes na sessão: esquecer de propagar uma mudança em arquivo compartilhado entre módulos).
 
-**Pendente do lado do usuário:** criar conta Twilio (ou outro BSP) + WhatsApp Business Platform, configurar o webhook no painel deles apontando pra `/api/v1/whatsapp/webhook?tenant_id=<uuid>`, testar o fluxo real de opt-in mandando mensagem de verdade.
+**Bugs reais encontrados na validação do usuário (3, todos corrigidos):**
+1. `WhatsAppContactNotFoundError`/`ContactNotOptedInError` faltando no `_APPLICATION_ERROR_STATUS_MAP` do `error_handlers.py` — arquivo desatualizado
+2. `python-multipart` faltando nas dependências — necessário para `request.form()` (primeiro endpoint do projeto recebendo form-urlencoded, não JSON)
+3. `uvicorn --proxy-headers` sozinho não basta atrás do proxy do Railway — precisou de `--forwarded-allow-ips='*'` também, senão a URL reconstruída fica `http://` em vez de `https://`, quebrando a verificação de assinatura do Twilio
+
+**Validado end-to-end em produção real, 16/08/2026**: mensagem WhatsApp real → Twilio → webhook → opt-in registrado, confirmado via API. Sandbox do Twilio usado para o teste (não o número de produção da campanha ainda — isso fica pra quando o piloto for lançado de verdade).
 
 ---
 
