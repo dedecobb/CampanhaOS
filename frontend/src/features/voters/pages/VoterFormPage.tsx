@@ -36,6 +36,14 @@ export function VoterFormPage() {
       neighborhood: values.neighborhood || null,
       tags,
       notes: values.notes || null,
+      // Só manda coordenada se o usuário ajustou o pino manualmente
+      // NESTA sessão — mandar sempre a coordenada pré-existente
+      // bloquearia a re-geocodificação automática ao mudar o endereço
+      // (o backend trata "veio coordenada" como "é manual, não
+      // geocodificar de novo").
+      ...(values.locationManuallyAdjusted
+        ? { latitude: values.latitude, longitude: values.longitude }
+        : {}),
     };
 
     if (isEditMode) {

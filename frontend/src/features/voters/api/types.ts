@@ -54,6 +54,15 @@ export interface VoterFormValues {
   state: string;
   postal_code: string;
   neighborhood: string;
+  latitude: number | null;
+  longitude: number | null;
+  /**
+   * true só quando o usuário arrastou/clicou no mapa NESTA sessão de
+   * edição — distingue "coordenada que já existia" (não deve impedir
+   * re-geocodificação automática se o endereço mudar) de "ajuste manual
+   * de verdade" (deve ser respeitado, nunca sobrescrito).
+   */
+  locationManuallyAdjusted: boolean;
   tags: string; // no formulário, tags é uma string separada por vírgula — convertida para array antes de enviar
   notes: string;
 }
@@ -67,6 +76,8 @@ export interface VoterCreateRequest {
   state?: string | null;
   postal_code?: string | null;
   neighborhood?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
   tags?: string[];
   notes?: string | null;
 }

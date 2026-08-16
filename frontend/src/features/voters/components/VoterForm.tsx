@@ -3,6 +3,7 @@ import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
 import { Select } from "@/shared/components/ui/select";
+import { LocationPicker } from "@/features/voters/components/LocationPicker";
 import { LEGAL_BASIS_OPTIONS, type Voter, type VoterFormValues } from "@/features/voters/api/types";
 
 interface VoterFormProps {
@@ -22,6 +23,9 @@ function voterToFormValues(voter: Voter | undefined): VoterFormValues {
     state: voter?.state ?? "",
     postal_code: voter?.postal_code ?? "",
     neighborhood: voter?.neighborhood ?? "",
+    latitude: voter?.latitude ?? null,
+    longitude: voter?.longitude ?? null,
+    locationManuallyAdjusted: false,
     tags: voter?.tags.join(", ") ?? "",
     notes: voter?.notes ?? "",
   };
@@ -115,6 +119,21 @@ export function VoterForm({ initialVoter, onSubmit, isSubmitting, submitLabel }:
         Cidade, UF e CEP tornam a localização no mapa muito mais precisa — sem eles, o endereço sozinho pode
         ser confundido com uma rua de mesmo nome em outra cidade.
       </p>
+
+      {initialVoter && (
+        <div className="space-y-2">
+          <Label>Posição no mapa</Label>
+          <LocationPicker
+            latitude={values.latitude}
+            longitude={values.longitude}
+            onChange={(latitude, longitude) => {
+              updateField("latitude", latitude);
+              updateField("longitude", longitude);
+              updateField("locationManuallyAdjusted", true);
+            }}
+          />
+        </div>
+      )}
 
       <div className="space-y-2">
         <Label htmlFor="tags">Tags (separadas por vírgula)</Label>
