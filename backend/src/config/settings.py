@@ -60,6 +60,12 @@ class Settings(BaseSettings):
     # percebido agora, ao planejar o deploy de verdade.
     frontend_url: str | None = None
 
+    # --- Geocodificação ---
+    # Opcional de propósito: se não configurado, a geocodificação
+    # automática de endereço de eleitor simplesmente não acontece (sem
+    # quebrar a criação/edição do eleitor) — ver GeocodingService.
+    mapbox_access_token: str | None = None
+
     @property
     def is_production(self) -> bool:
         return self.environment == "production"
