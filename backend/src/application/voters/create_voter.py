@@ -26,18 +26,6 @@ class CreateVoterUseCase:
             if not exists:
                 raise LeadershipNotFoundError
 
-        latitude = input_data.latitude
-        longitude = input_data.longitude
-        # Só geocodifica automaticamente se um endereço foi informado E
-        # nenhuma coordenada manual foi passada — respeita quem prefere
-        # fornecer a coordenada exata na mão (ex: importação de dado que
-        # já vem geocodificado de outra fonte).
-        if input_data.address and latitude is None and longitude is None:
-            coordinates = await self._geocoding_service.geocode(input_data.address)
-            if coordinates is not None:
-                latitude = coordinates.latitude
-                longitude = coordinates.longitude
-
         voter = Voter.create(
             tenant_id=input_data.tenant_id,
             created_by_user_id=input_data.created_by_user_id,
@@ -45,12 +33,27 @@ class CreateVoterUseCase:
             legal_basis=input_data.legal_basis,
             phone=input_data.phone,
             address=input_data.address,
-            latitude=latitude,
-            longitude=longitude,
+            city=input_data.city,
+            state=input_data.state,
+            postal_code=input_data.postal_code,
+            latitude=input_data.latitude,
+            longitude=input_data.longitude,
             tags=input_data.tags,
             custom_fields=input_data.custom_fields,
             notes=input_data.notes,
             leadership_id=input_data.leadership_id,
         )
+
+        # Só geocodifica automaticamente se houver o que geocodificar E
+        # nenhuma coordenada manual foi passada — respeita quem prefere
+        # fornecer a coordenada exata na mão. `geocoding_query` combina
+        # endereço + cidade + estado + CEP (ver Voter, domínio) — muito
+        # mais preciso do que geocodificar só o endereço isolado.
+        if voter.geocoding_query and voter.latitude is None and voter.longitude is None:
+            coordinates = await self._geocoding_service.geocode(voter.geocoding_query)
+            if coordinates is not None:
+                voter.latitude = coordinates.latitude
+                voter.longitude = coordinates.longitude
+
         await self._voter_repository.save(voter)
         return voter_to_output(voter)

@@ -18,6 +18,9 @@ function voterToFormValues(voter: Voter | undefined): VoterFormValues {
     legal_basis: voter?.legal_basis ?? LEGAL_BASIS_OPTIONS[0].value,
     phone: voter?.phone ?? "",
     address: voter?.address ?? "",
+    city: voter?.city ?? "",
+    state: voter?.state ?? "",
+    postal_code: voter?.postal_code ?? "",
     tags: voter?.tags.join(", ") ?? "",
     notes: voter?.notes ?? "",
   };
@@ -71,10 +74,37 @@ export function VoterForm({ initialVoter, onSubmit, isSubmitting, submitLabel }:
       <div className="space-y-2">
         <Label htmlFor="address">Endereço</Label>
         <Input id="address" value={values.address} onChange={(e) => updateField("address", e.target.value)} />
-        <p className="text-xs text-muted-foreground">
-          A localização no mapa é preenchida automaticamente a partir deste endereço.
-        </p>
       </div>
+
+      <div className="grid grid-cols-[1fr_auto_auto] gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="city">Cidade</Label>
+          <Input id="city" value={values.city} onChange={(e) => updateField("city", e.target.value)} />
+        </div>
+        <div className="w-20 space-y-2">
+          <Label htmlFor="state">UF</Label>
+          <Input
+            id="state"
+            value={values.state}
+            onChange={(e) => updateField("state", e.target.value.toUpperCase())}
+            maxLength={2}
+            placeholder="RJ"
+          />
+        </div>
+        <div className="w-32 space-y-2">
+          <Label htmlFor="postal_code">CEP</Label>
+          <Input
+            id="postal_code"
+            value={values.postal_code}
+            onChange={(e) => updateField("postal_code", e.target.value)}
+            placeholder="24000-000"
+          />
+        </div>
+      </div>
+      <p className="-mt-2 text-xs text-muted-foreground">
+        Cidade, UF e CEP tornam a localização no mapa muito mais precisa — sem eles, o endereço sozinho pode
+        ser confundido com uma rua de mesmo nome em outra cidade.
+      </p>
 
       <div className="space-y-2">
         <Label htmlFor="tags">Tags (separadas por vírgula)</Label>

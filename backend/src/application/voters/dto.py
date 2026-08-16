@@ -33,6 +33,9 @@ class CreateVoterInput:
     legal_basis: str
     phone: str | None = None
     address: str | None = None
+    city: str | None = None
+    state: str | None = None
+    postal_code: str | None = None
     latitude: float | None = None
     longitude: float | None = None
     tags: list[str] = field(default_factory=list)
@@ -48,6 +51,9 @@ class UpdateVoterInput:
     name: str | None = None
     phone: str | None = None
     address: str | None = None
+    city: str | None = None
+    state: str | None = None
+    postal_code: str | None = None
     latitude: float | None = None
     longitude: float | None = None
     tags: list[str] | None = None
@@ -89,6 +95,9 @@ class VoterOutput:
     name: str
     phone: str | None
     address: str | None
+    city: str | None
+    state: str | None
+    postal_code: str | None
     latitude: float | None
     longitude: float | None
     tags: list[str]

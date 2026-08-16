@@ -22,6 +22,9 @@ export interface Voter {
   name: string;
   phone: string | null;
   address: string | null;
+  city: string | null;
+  state: string | null;
+  postal_code: string | null;
   latitude: number | null;
   longitude: number | null;
   tags: string[];
@@ -46,6 +49,9 @@ export interface VoterFormValues {
   legal_basis: string;
   phone: string;
   address: string;
+  city: string;
+  state: string;
+  postal_code: string;
   tags: string; // no formulário, tags é uma string separada por vírgula — convertida para array antes de enviar
   notes: string;
 }
@@ -55,6 +61,9 @@ export interface VoterCreateRequest {
   legal_basis: string;
   phone?: string | null;
   address?: string | null;
+  city?: string | null;
+  state?: string | null;
+  postal_code?: string | null;
   tags?: string[];
   notes?: string | null;
 }

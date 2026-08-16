@@ -26,6 +26,9 @@ class VoterCreateRequest(BaseModel):
     legal_basis: LegalBasis
     phone: str | None = Field(None, max_length=30)
     address: str | None = Field(None, max_length=500)
+    city: str | None = Field(None, max_length=255)
+    state: str | None = Field(None, min_length=2, max_length=2, description="Sigla da UF, ex: RJ")
+    postal_code: str | None = Field(None, max_length=20)
     latitude: float | None = None
     longitude: float | None = None
     tags: list[str] = Field(default_factory=list)
@@ -48,6 +51,9 @@ class VoterUpdateRequest(BaseModel):
     name: str | None = Field(None, min_length=1, max_length=255)
     phone: str | None = Field(None, max_length=30)
     address: str | None = Field(None, max_length=500)
+    city: str | None = Field(None, max_length=255)
+    state: str | None = Field(None, min_length=2, max_length=2)
+    postal_code: str | None = Field(None, max_length=20)
     latitude: float | None = None
     longitude: float | None = None
     tags: list[str] | None = None
@@ -67,6 +73,9 @@ class VoterResponse(BaseModel):
     name: str
     phone: str | None
     address: str | None
+    city: str | None
+    state: str | None
+    postal_code: str | None
     latitude: float | None
     longitude: float | None
     tags: list[str]

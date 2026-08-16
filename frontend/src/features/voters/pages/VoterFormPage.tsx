@@ -30,6 +30,9 @@ export function VoterFormPage() {
       legal_basis: values.legal_basis,
       phone: values.phone || null,
       address: values.address || null,
+      city: values.city || null,
+      state: values.state || null,
+      postal_code: values.postal_code || null,
       tags,
       notes: values.notes || null,
     };

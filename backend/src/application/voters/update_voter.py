@@ -38,28 +38,43 @@ class UpdateVoterUseCase:
                     raise LeadershipNotFoundError
             leadership_kwargs["leadership_id"] = input_data.leadership_id
 
-        latitude = input_data.latitude
-        longitude = input_data.longitude
-        # Re-geocodifica automaticamente só se o endereço está sendo
-        # alterado NESTA chamada e nenhuma coordenada manual veio junto
-        # — evita geocodificar de novo em todo PATCH que não mexe no
-        # endereço (ex: só atualizando o telefone).
-        if input_data.address and latitude is None and longitude is None:
-            coordinates = await self._geocoding_service.geocode(input_data.address)
-            if coordinates is not None:
-                latitude = coordinates.latitude
-                longitude = coordinates.longitude
+        # Detecta ANTES de aplicar a atualização se algum dos 4 campos que
+        # compõem `geocoding_query` está sendo alterado nesta chamada —
+        # precisa ser feito antes de `update_details`, ou perderíamos a
+        # informação de "o que mudou nesta chamada" (depois de aplicado,
+        # os valores novo e antigo ficam indistinguíveis).
+        address_fields_changed = any(
+            field is not None
+            for field in (input_data.address, input_data.city, input_data.state, input_data.postal_code)
+        )
 
         voter.update_details(
             name=input_data.name,
             phone=input_data.phone,
             address=input_data.address,
-            latitude=latitude,
-            longitude=longitude,
+            city=input_data.city,
+            state=input_data.state,
+            postal_code=input_data.postal_code,
+            # Só aplica coordenada manual aqui — a automática (geocodificada)
+            # é setada depois, abaixo, usando o geocoding_query já atualizado.
+            latitude=input_data.latitude,
+            longitude=input_data.longitude,
             tags=input_data.tags,
             custom_fields=input_data.custom_fields,
             notes=input_data.notes,
             **leadership_kwargs,
         )
+
+        # Re-geocodifica automaticamente só se algum campo de endereço
+        # mudou NESTA chamada e nenhuma coordenada manual veio junto —
+        # evita geocodificar de novo em todo PATCH que não mexe em
+        # endereço/cidade/estado/CEP (ex: só atualizando o telefone).
+        if address_fields_changed and input_data.latitude is None and input_data.longitude is None:
+            if voter.geocoding_query:
+                coordinates = await self._geocoding_service.geocode(voter.geocoding_query)
+                if coordinates is not None:
+                    voter.latitude = coordinates.latitude
+                    voter.longitude = coordinates.longitude
+
         await self._voter_repository.save(voter)
         return voter_to_output(voter)

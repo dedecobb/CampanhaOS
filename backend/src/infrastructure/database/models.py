@@ -229,6 +229,9 @@ class VoterModel(TimestampMixin, Base):
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     phone: Mapped[str | None] = mapped_column(String(30))
     address: Mapped[str | None] = mapped_column(String(500))
+    city: Mapped[str | None] = mapped_column(String(255))
+    state: Mapped[str | None] = mapped_column(String(2))
+    postal_code: Mapped[str | None] = mapped_column(String(20))
     latitude: Mapped[float | None]
     longitude: Mapped[float | None]
     tags: Mapped[list[str]] = mapped_column(ARRAY(String), nullable=False, default=list)

@@ -47,6 +47,9 @@ class Voter:
     name: str
     phone: str | None
     address: str | None
+    city: str | None
+    state: str | None
+    postal_code: str | None
     latitude: float | None
     longitude: float | None
     tags: list[str]
@@ -66,6 +69,9 @@ class Voter:
         legal_basis: str,
         phone: str | None = None,
         address: str | None = None,
+        city: str | None = None,
+        state: str | None = None,
+        postal_code: str | None = None,
         latitude: float | None = None,
         longitude: float | None = None,
         tags: list[str] | None = None,
@@ -84,6 +90,9 @@ class Voter:
             name=name.strip(),
             phone=phone.strip() if phone else None,
             address=address.strip() if address else None,
+            city=city.strip() if city else None,
+            state=state.strip().upper() if state else None,  # sigla de UF, ex: "RJ" — normaliza maiúscula
+            postal_code=postal_code.strip() if postal_code else None,
             latitude=latitude,
             longitude=longitude,
             tags=sorted(set(tags)) if tags else [],  # sem duplicatas, ordem estável
@@ -110,12 +119,35 @@ class Voter:
     def is_deleted(self) -> bool:
         return self.deleted_at is not None
 
+    @property
+    def geocoding_query(self) -> str | None:
+        """
+        Monta a string completa usada para geocodificar — combinar
+        endereço + cidade + estado + CEP resolve a ambiguidade que um
+        endereço sozinho tem (ex: "Rua das Flores, 123" existe em
+        centenas de cidades brasileiras diferentes; com cidade/estado/CEP
+        juntos, o geocodificador consegue ser preciso).
+        """
+        if not self.address:
+            return None
+        parts = [self.address]
+        if self.city:
+            parts.append(self.city)
+        if self.state:
+            parts.append(self.state)
+        if self.postal_code:
+            parts.append(self.postal_code)
+        return ", ".join(parts) + ", Brasil"
+
     def update_details(
         self,
         *,
         name: str | None = None,
         phone: str | None = None,
         address: str | None = None,
+        city: str | None = None,
+        state: str | None = None,
+        postal_code: str | None = None,
         latitude: float | None = None,
         longitude: float | None = None,
         tags: list[str] | None = None,
@@ -143,6 +175,12 @@ class Voter:
             self.phone = phone.strip() or None
         if address is not None:
             self.address = address.strip() or None
+        if city is not None:
+            self.city = city.strip() or None
+        if state is not None:
+            self.state = state.strip().upper() or None
+        if postal_code is not None:
+            self.postal_code = postal_code.strip() or None
         if latitude is not None:
             self.latitude = latitude
         if longitude is not None:
