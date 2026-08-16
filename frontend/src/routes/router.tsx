@@ -9,6 +9,7 @@ import { FinanceTransactionFormPage } from "@/features/finance/pages/FinanceTran
 import { FinanceTransactionsListPage } from "@/features/finance/pages/FinanceTransactionsListPage";
 import { LeadershipFormPage } from "@/features/leaderships/pages/LeadershipFormPage";
 import { LeadershipsListPage } from "@/features/leaderships/pages/LeadershipsListPage";
+import { MapPage } from "@/features/map/pages/MapPage";
 import { VoterFormPage } from "@/features/voters/pages/VoterFormPage";
 import { VotersListPage } from "@/features/voters/pages/VotersListPage";
 
@@ -36,6 +37,7 @@ export const router = createBrowserRouter([
           { path: "/financeiro", element: <FinanceTransactionsListPage /> },
           { path: "/financeiro/novo", element: <FinanceTransactionFormPage /> },
           { path: "/financeiro/:id/editar", element: <FinanceTransactionFormPage /> },
+          { path: "/mapa", element: <MapPage /> },
         ],
       },
     ],

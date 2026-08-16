@@ -101,6 +101,21 @@ class SqlAlchemyVoterRepository(VoterRepository):
             page_size=page_size,
         )
 
+    async def list_with_coordinates(self, tenant_id: UUID, limit: int = 1000) -> list[Voter]:
+        stmt = (
+            select(VoterModel)
+            .where(
+                VoterModel.tenant_id == tenant_id,
+                VoterModel.deleted_at.is_(None),
+                VoterModel.latitude.is_not(None),
+                VoterModel.longitude.is_not(None),
+            )
+            .order_by(VoterModel.name.asc())
+            .limit(limit)
+        )
+        models = (await self._session.execute(stmt)).scalars().all()
+        return [self._to_domain(m) for m in models]
+
     def _to_domain(self, model: VoterModel) -> Voter:
         return Voter(
             id=model.id,

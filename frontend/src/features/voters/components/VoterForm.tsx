@@ -71,6 +71,9 @@ export function VoterForm({ initialVoter, onSubmit, isSubmitting, submitLabel }:
       <div className="space-y-2">
         <Label htmlFor="address">Endereço</Label>
         <Input id="address" value={values.address} onChange={(e) => updateField("address", e.target.value)} />
+        <p className="text-xs text-muted-foreground">
+          A localização no mapa é preenchida automaticamente a partir deste endereço.
+        </p>
       </div>
 
       <div className="space-y-2">

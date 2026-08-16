@@ -1,3 +1,4 @@
+from src.application.geocoding.ports import GeocodingService
 from src.application.leaderships.exceptions import LeadershipNotFoundError
 from src.application.voters.dto import UNSET, UpdateVoterInput, VoterOutput
 from src.application.voters.exceptions import VoterNotFoundError
@@ -11,9 +12,11 @@ class UpdateVoterUseCase:
         self,
         voter_repository: VoterRepository,
         leadership_repository: LeadershipRepository,
+        geocoding_service: GeocodingService,
     ) -> None:
         self._voter_repository = voter_repository
         self._leadership_repository = leadership_repository
+        self._geocoding_service = geocoding_service
 
     async def execute(self, input_data: UpdateVoterInput) -> VoterOutput:
         voter = await self._voter_repository.find_by_id(input_data.tenant_id, input_data.voter_id)
@@ -35,12 +38,24 @@ class UpdateVoterUseCase:
                     raise LeadershipNotFoundError
             leadership_kwargs["leadership_id"] = input_data.leadership_id
 
+        latitude = input_data.latitude
+        longitude = input_data.longitude
+        # Re-geocodifica automaticamente só se o endereço está sendo
+        # alterado NESTA chamada e nenhuma coordenada manual veio junto
+        # — evita geocodificar de novo em todo PATCH que não mexe no
+        # endereço (ex: só atualizando o telefone).
+        if input_data.address and latitude is None and longitude is None:
+            coordinates = await self._geocoding_service.geocode(input_data.address)
+            if coordinates is not None:
+                latitude = coordinates.latitude
+                longitude = coordinates.longitude
+
         voter.update_details(
             name=input_data.name,
             phone=input_data.phone,
             address=input_data.address,
-            latitude=input_data.latitude,
-            longitude=input_data.longitude,
+            latitude=latitude,
+            longitude=longitude,
             tags=input_data.tags,
             custom_fields=input_data.custom_fields,
             notes=input_data.notes,

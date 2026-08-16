@@ -86,3 +86,15 @@ class VoterListResponse(BaseModel):
     page: int
     page_size: int
     total_pages: int
+
+
+class VoterMapPointResponse(BaseModel):
+    """Saída leve para a tela de mapa — ver VoterMapPointOutput (camada de aplicação)."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    name: str
+    address: str | None
+    latitude: float
+    longitude: float

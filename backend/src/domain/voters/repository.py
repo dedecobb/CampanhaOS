@@ -61,3 +61,17 @@ class VoterRepository(ABC):
         Lista paginada. `page` é 1-indexado (página 1 é a primeira, não a
         0) — convenção mais natural para quem consome a API depois.
         """
+
+    @abstractmethod
+    async def list_with_coordinates(self, tenant_id: UUID, limit: int = 1000) -> list[Voter]:
+        """
+        Usado pela tela de mapa — retorna eleitores com latitude/longitude
+        preenchidas, SEM paginação de página em página (não faz sentido
+        paginar pontos de um mapa), mas COM um teto explícito (`limit`).
+        Isso não contradiz o princípio documentado acima ("nunca um
+        list_all() sem limite") — só troca "paginação" por "teto fixo"
+        como mecanismo de limitação, apropriado para este caso de uso
+        específico (renderizar pontos num mapa, não navegar página a
+        página por uma lista).
+        """
+

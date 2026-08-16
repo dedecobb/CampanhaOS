@@ -78,6 +78,11 @@ class ListVotersInput:
 
 
 @dataclass(frozen=True)
+class ListVotersForMapInput:
+    tenant_id: UUID
+
+
+@dataclass(frozen=True)
 class VoterOutput:
     id: UUID
     created_by_user_id: UUID
@@ -102,3 +107,19 @@ class ListVotersOutput:
     page: int
     page_size: int
     total_pages: int
+
+
+@dataclass(frozen=True)
+class VoterMapPointOutput:
+    """
+    Saída LEVE de propósito — só os campos necessários para desenhar um
+    pino no mapa. Reaproveitar `VoterOutput` inteiro traria campos como
+    `tags`/`custom_fields`/`notes` que o mapa nunca usa, inflando o
+    payload à toa quando há muitos eleitores geocodificados.
+    """
+
+    id: UUID
+    name: str
+    address: str | None
+    latitude: float
+    longitude: float

@@ -24,16 +24,19 @@ from src.application.voters.dto import (
     CreateVoterInput,
     DeleteVoterInput,
     GetVoterInput,
+    ListVotersForMapInput,
     ListVotersInput,
     UpdateVoterInput,
 )
 from src.application.voters.get_voter import GetVoterUseCase
 from src.application.voters.list_voters import ListVotersUseCase
+from src.application.voters.list_voters_for_map import ListVotersForMapUseCase
 from src.application.voters.update_voter import UpdateVoterUseCase
 from src.presentation.api.dependencies import CurrentUser, DbSession
 from src.presentation.api.v1.schemas.voters import (
     VoterCreateRequest,
     VoterListResponse,
+    VoterMapPointResponse,
     VoterResponse,
     VoterUpdateRequest,
 )
@@ -41,6 +44,7 @@ from src.presentation.api.voters_dependencies import (
     get_create_voter_use_case,
     get_delete_voter_use_case,
     get_get_voter_use_case,
+    get_list_voters_for_map_use_case,
     get_list_voters_use_case,
     get_update_voter_use_case,
 )
@@ -94,6 +98,21 @@ async def list_voters(
         )
     )
     return VoterListResponse.model_validate(output)
+
+
+@router.get("/map", response_model=list[VoterMapPointResponse])
+async def list_voters_for_map(
+    current_user: CurrentUser,
+    use_case: Annotated[ListVotersForMapUseCase, Depends(get_list_voters_for_map_use_case)],
+) -> list[VoterMapPointResponse]:
+    """
+    IMPORTANTE: esta rota precisa vir ANTES de `/{voter_id}` no arquivo —
+    o FastAPI casa rotas na ordem em que são declaradas, e `/{voter_id}`
+    (UUID) tentaria capturar "map" como se fosse um id, dando 422 em vez
+    de rodar este endpoint.
+    """
+    outputs = await use_case.execute(ListVotersForMapInput(tenant_id=current_user.tenant_id))
+    return [VoterMapPointResponse.model_validate(o) for o in outputs]
 
 
 @router.get("/{voter_id}", response_model=VoterResponse)
