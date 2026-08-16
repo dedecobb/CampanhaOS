@@ -74,9 +74,17 @@ async def whatsapp_webhook(
 
     signature_header = request.headers.get("X-Twilio-Signature", "")
     full_url = str(request.url)
+
+    # >>> DIAGNÓSTICO TEMPORÁRIO — remover depois de resolver o 403 <<<
+    print(f">>> [DIAGNÓSTICO WEBHOOK] full_url usada para calcular assinatura: {full_url!r}", flush=True)
+    print(f">>> [DIAGNÓSTICO WEBHOOK] post_params: {post_params!r}", flush=True)
+    print(f">>> [DIAGNÓSTICO WEBHOOK] X-Twilio-Signature recebida: {signature_header!r}", flush=True)
+    print(f">>> [DIAGNÓSTICO WEBHOOK] request.headers completos: {dict(request.headers)!r}", flush=True)
+
     is_valid_signature = validate_twilio_signature(
         settings.twilio_auth_token, full_url, post_params, signature_header
     )
+    print(f">>> [DIAGNÓSTICO WEBHOOK] assinatura válida? {is_valid_signature}", flush=True)
     if not is_valid_signature:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Assinatura inválida")
 
