@@ -4,7 +4,7 @@ import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
 import { Select } from "@/shared/components/ui/select";
 import { LocationPicker } from "@/features/voters/components/LocationPicker";
-import { LEGAL_BASIS_OPTIONS, type Voter, type VoterFormValues } from "@/features/voters/api/types";
+import { GENDER_OPTIONS, LEGAL_BASIS_OPTIONS, type Voter, type VoterFormValues } from "@/features/voters/api/types";
 
 interface VoterFormProps {
   initialVoter?: Voter;
@@ -23,6 +23,8 @@ function voterToFormValues(voter: Voter | undefined): VoterFormValues {
     state: voter?.state ?? "",
     postal_code: voter?.postal_code ?? "",
     neighborhood: voter?.neighborhood ?? "",
+    gender: voter?.gender ?? "",
+    birth_date: voter?.birth_date ?? "",
     latitude: voter?.latitude ?? null,
     longitude: voter?.longitude ?? null,
     locationManuallyAdjusted: false,
@@ -88,6 +90,29 @@ export function VoterForm({ initialVoter, onSubmit, isSubmitting, submitLabel }:
           value={values.neighborhood}
           onChange={(e) => updateField("neighborhood", e.target.value)}
         />
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="gender">Gênero</Label>
+          <Select id="gender" value={values.gender} onChange={(e) => updateField("gender", e.target.value)}>
+            <option value="">Prefere não informar / não selecionado</option>
+            {GENDER_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </Select>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="birth_date">Data de nascimento</Label>
+          <Input
+            id="birth_date"
+            type="date"
+            value={values.birth_date}
+            onChange={(e) => updateField("birth_date", e.target.value)}
+          />
+        </div>
       </div>
 
       <div className="grid grid-cols-[1fr_auto_auto] gap-4">

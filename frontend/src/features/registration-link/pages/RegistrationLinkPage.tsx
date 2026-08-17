@@ -9,7 +9,7 @@ import {
 } from "@/features/registration-link/hooks/use-registration-link";
 
 export function RegistrationLinkPage() {
-  const { data, isLoading } = useRegistrationLink();
+  const { data, isLoading, isError, error } = useRegistrationLink();
   const generateLink = useGenerateRegistrationLink();
   const revokeLink = useRevokeRegistrationLink();
   const [copied, setCopied] = useState(false);
@@ -57,6 +57,11 @@ export function RegistrationLinkPage() {
       </Card>
 
       {isLoading && <p className="text-muted-foreground">Carregando...</p>}
+      {isError && (
+        <p className="text-destructive">
+          Não foi possível carregar o link de autocadastro. {error instanceof Error ? error.message : ""}
+        </p>
+      )}
 
       {!isLoading && data && (
         <Card>
