@@ -14,6 +14,8 @@ const fullVoter: Voter = {
   state: "MT",
   postal_code: "78000-000",
   neighborhood: "Centro",
+  gender: "feminino",
+  birth_date: "1990-05-15",
   latitude: null,
   longitude: null,
   tags: ["lideranca", "zona-norte"],
