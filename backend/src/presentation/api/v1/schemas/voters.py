@@ -75,7 +75,7 @@ class VoterResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: UUID
-    created_by_user_id: UUID
+    created_by_user_id: UUID | None
     name: str
     phone: str | None
     address: str | None
