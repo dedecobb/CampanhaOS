@@ -40,6 +40,14 @@ class FinanceTransactionResponse(BaseModel):
     occurred_at: date
     created_at: datetime
     updated_at: datetime
+    attachment_filename: str | None
+    attachment_content_type: str | None
+    attachment_size_bytes: int | None
+
+
+class FinanceAttachmentDownloadResponse(BaseModel):
+    download_url: str
+    filename: str
 
 
 class FinanceSummaryResponse(BaseModel):

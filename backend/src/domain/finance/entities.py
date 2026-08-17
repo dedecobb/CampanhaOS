@@ -24,6 +24,14 @@ from src.domain.shared.exceptions import DomainError, InvalidNameError
 
 _VALID_TRANSACTION_TYPES = frozenset({"receita", "despesa", "doacao"})
 
+# Tipos de anexo aceitos — nota fiscal, cupom fiscal, comprovante. Só
+# imagem e PDF, nada de tipo executável/script — checagem de verdade
+# (conteúdo real do arquivo, não extensão) acontece na camada de
+# infraestrutura (ver infrastructure/storage/file_validator.py), aqui só
+# validamos que o content_type declarado está na lista permitida.
+MAX_ATTACHMENT_SIZE_BYTES = 10 * 1024 * 1024  # 10MB
+VALID_ATTACHMENT_CONTENT_TYPES = frozenset({"image/jpeg", "image/png", "application/pdf"})
+
 
 class InvalidTransactionTypeError(DomainError):
     def __init__(self, value: str) -> None:
@@ -35,6 +43,11 @@ class InvalidTransactionTypeError(DomainError):
 class InvalidAmountError(DomainError):
     def __init__(self) -> None:
         super().__init__("O valor do lançamento precisa ser maior que zero")
+
+
+class InvalidAttachmentError(DomainError):
+    def __init__(self, message: str) -> None:
+        super().__init__(message)
 
 
 @dataclass
@@ -50,6 +63,14 @@ class FinanceTransaction:
     created_at: datetime
     updated_at: datetime
     deleted_at: datetime | None = None
+    # Um anexo por lançamento — não é um sistema de documentos com
+    # múltiplos arquivos/versões, é literalmente "o comprovante desse
+    # gasto". `attachment_storage_key` é o caminho no Cloudflare R2, não
+    # o arquivo em si (o arquivo mora só no R2, nunca no banco).
+    attachment_storage_key: str | None = None
+    attachment_filename: str | None = None
+    attachment_content_type: str | None = None
+    attachment_size_bytes: int | None = None
 
     @staticmethod
     def create(
@@ -134,3 +155,47 @@ class FinanceTransaction:
 
     def soft_delete(self) -> None:
         self.deleted_at = datetime.now(UTC)
+
+    def attach_document(
+        self,
+        storage_key: str,
+        filename: str,
+        content_type: str,
+        size_bytes: int,
+    ) -> None:
+        """
+        Registra o anexo NESTE lançamento — chamado depois que o arquivo
+        já foi enviado com sucesso pro R2 (a ordem importa: primeiro
+        sobe o arquivo, só depois grava a referência aqui; nunca o
+        contrário, senão fica uma referência apontando pra um arquivo
+        que não existe).
+
+        Anexar um novo documento SUBSTITUI o anterior (um anexo por
+        lançamento) — quem chama isso é responsável por também apagar o
+        arquivo antigo do R2 se houver um (ver
+        UploadFinanceAttachmentUseCase, camada de aplicação).
+        """
+        if content_type not in VALID_ATTACHMENT_CONTENT_TYPES:
+            raise InvalidAttachmentError(
+                f"Tipo de arquivo '{content_type}' não permitido. Aceitos: JPEG, PNG, PDF."
+            )
+        if size_bytes <= 0:
+            raise InvalidAttachmentError("Arquivo vazio")
+        if size_bytes > MAX_ATTACHMENT_SIZE_BYTES:
+            raise InvalidAttachmentError(
+                f"Arquivo muito grande ({size_bytes / 1024 / 1024:.1f}MB) — limite de "
+                f"{MAX_ATTACHMENT_SIZE_BYTES / 1024 / 1024:.0f}MB"
+            )
+
+        self.attachment_storage_key = storage_key
+        self.attachment_filename = filename
+        self.attachment_content_type = content_type
+        self.attachment_size_bytes = size_bytes
+        self.updated_at = datetime.now(UTC)
+
+    def remove_attachment(self) -> None:
+        self.attachment_storage_key = None
+        self.attachment_filename = None
+        self.attachment_content_type = None
+        self.attachment_size_bytes = None
+        self.updated_at = datetime.now(UTC)
