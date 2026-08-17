@@ -92,7 +92,7 @@ export function VoterForm({ initialVoter, onSubmit, isSubmitting, submitLabel }:
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div className="space-y-2">
           <Label htmlFor="gender">Gênero</Label>
           <Select id="gender" value={values.gender} onChange={(e) => updateField("gender", e.target.value)}>
@@ -115,12 +115,12 @@ export function VoterForm({ initialVoter, onSubmit, isSubmitting, submitLabel }:
         </div>
       </div>
 
-      <div className="grid grid-cols-[1fr_auto_auto] gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-[1fr_auto_auto]">
         <div className="space-y-2">
           <Label htmlFor="city">Cidade</Label>
           <Input id="city" value={values.city} onChange={(e) => updateField("city", e.target.value)} />
         </div>
-        <div className="w-20 space-y-2">
+        <div className="space-y-2 sm:w-20">
           <Label htmlFor="state">UF</Label>
           <Input
             id="state"
@@ -130,7 +130,7 @@ export function VoterForm({ initialVoter, onSubmit, isSubmitting, submitLabel }:
             placeholder="RJ"
           />
         </div>
-        <div className="w-32 space-y-2">
+        <div className="space-y-2 sm:w-32">
           <Label htmlFor="postal_code">CEP</Label>
           <Input
             id="postal_code"

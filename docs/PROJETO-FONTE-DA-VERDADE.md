@@ -1,8 +1,8 @@
 # CampanhaOS — Fonte da Verdade do Projeto
 
-**Última atualização:** 16/08/2026
+**Última atualização:** 17/08/2026
 **Fase atual:** Fase 2 em andamento
-**Módulo em desenvolvimento:** nenhum (WhatsApp opt-in via Twilio — VALIDADO END-TO-END EM PRODUÇÃO REAL, mensagem real recebida e opt-in confirmado; próximo: telas de frontend restantes — Lideranças/Agenda/Financeiro — ou mapa mental de relacionamentos)
+**Módulo em desenvolvimento:** nenhum (Gênero/Nascimento + Link de Autocadastro Público + Painel do Dashboard — TODOS validados em produção real, com apoiador de verdade se autocadastrando pelo link. Próximo: anexo de comprovante financeiro — JPEG/PNG/PDF via Cloudflare R2, combinado mas não iniciado)
 
 ---
 
@@ -379,6 +379,28 @@ O deploy real revelou vários bugs que a validação estática não conseguiria 
 
 ---
 
+### ADR-014 — Gênero inclusivo, autocadastro público com link único, e limitação de taxa via Redis
+**Decisão:** (1) campo de gênero com 5 opções (feminino, masculino, não-binário, prefere não informar, outro), sempre opcional; (2) autocadastro público via **um link único por campanha** (não individual por pessoa) — token gerável/revogável armazenado em `Tenant.public_registration_token`; (3) `Voter.created_by_user_id` tornou-se opcional (`None` = autocadastro, sem vínculo com usuário da equipe); (4) proteção contra spam via rate limiter próprio (Redis, janela fixa, 3 cadastros/hora por IP+tenant) — sem adicionar biblioteca nova, reaproveitando o Redis já usado pra refresh token blocklist.
+**Motivo:** usuário queria mandar o link "pra quem vai apoiar" sem precisar cadastrar cada pessoa manualmente — link único, compartilhado por fora do sistema (WhatsApp pessoal, redes sociais), resolve isso sem a fricção de gerar/enviar um link por pessoa (que também esbarraria na regra de opt-in do módulo WhatsApp, já que a pessoa ainda não tem opt-in nenhum nesse momento).
+**Status:** Aprovado, implementado, e **validado em produção com autocadastro real de um apoiador**.
+
+### 6.12 Gênero/Nascimento + Autocadastro Público + Painel do Dashboard (concluído)
+
+**O que foi entregue:**
+- **Eleitor:** campos `gender` (5 opções, sempre opcional) e `birth_date` (opcional)
+- **Autocadastro público:** `Tenant.public_registration_token` (gerável/revogável pela campanha, tela dedicada `/link-cadastro`), endpoint público `POST /public/registration/{token}` (sem login, exige `consent_given=true`, rate limit de 3/hora por IP)
+- **Painel do início:** `GET /dashboard/stats` — total de eleitores, autocadastro vs. equipe, gênero (pizza), faixa etária (barras, 6 faixas fixas: 16-17 a 60+), crescimento últimos 30 dias (linha), meta de eleitores editável com barra de progresso (`Tenant.voter_goal`)
+- **Migrações:** `0016` (gender/birth_date), `0017` (registration token), `0018` (created_by_user_id opcional), `0019` (voter_goal)
+
+**Sessão de debug excepcionalmente longa após o deploy — catálogo de causas reais, para referência futura:**
+1. **Arquivos "esquecidos" na cópia pra fora desta conversa** (o mais recorrente, de longe): `VoterFormPage.tsx`, `VoterForm.test.tsx`, `types.ts` de eleitores, `dashboard_dependencies.py`, `generate_registration_token.py`, `schemas/voters.py` — todos precisaram ser reenviados individualmente depois do erro aparecer em produção. **Lição para sessões futuras**: depois de blocos grandes com muitos arquivos, vale rodar uma checagem em lote (`grep -c` por arquivo esperado) ANTES do primeiro deploy, não depois do erro.
+2. **Arquivo salvo no caminho errado**: `schemas/voters.py` foi parar em `domain/voters/voters.py` por engano do usuário ao copiar/colar — só descoberto lendo a saída do `git commit` (`create mode ...`), não do erro em si.
+3. **`ChatGPT/Claude não reproduziu client_ip corretamente sem X-Forwarded-For`**: mesma lição do webhook do WhatsApp, replicada de propósito no endpoint de autocadastro público desde o início (não precisou redescobrir).
+
+**Validado em produção, 17/08/2026**: usuário mandou o link de autocadastro pra um apoiador real, que se cadastrou com sucesso; dashboard, formulário de eleitor e listagem de eleitores confirmados funcionando depois das correções.
+
+---
+
 ## 6. Modelagem de Dados (estado atual)
 
 **Implementadas e migradas:**
@@ -392,7 +414,9 @@ O deploy real revelou vários bugs que a validação estática não conseguiria 
 - **Módulo Geocodificação/Mapa:** `voters` ganhou `city`/`state`/`postal_code`/`neighborhood` (migrações `0013`, `0014`)
 - **Módulo WhatsApp:** `whatsapp_contacts` — RLS ativo, `UNIQUE(tenant_id, phone_number)` (migração `0015`)
 
-Schema real em `backend/src/infrastructure/database/models.py`. Migrações `0001` a `0015`.
+- **Módulo Gênero/Autocadastro/Dashboard:** `voters` ganhou `gender`/`birth_date`, `created_by_user_id` virou opcional (migração `0018`); `tenants` ganhou `public_registration_token` (`0017`) e `voter_goal` (`0019`)
+
+Schema real em `backend/src/infrastructure/database/models.py`. Migrações `0001` a `0019`.
 
 **Ainda conceituais, não implementadas:** `AuditLog` (transversal, ainda sem módulo dedicado).
 
@@ -463,13 +487,15 @@ Diagrama ER conceitual completo (incluindo as entidades ainda não implementadas
 
 ## 9. Próximo Passo
 
-**Piloto no ar, com mapa de eleitores funcionando (geocodificação automática + ajuste manual).** Antes de seguir:
-1. Commit final de tudo (backend: migrações 0013/0014, geocoding, voters; frontend: LocationPicker, MapPage, VoterForm atualizado).
+**Piloto no ar, com autocadastro público validado por um apoiador real, dashboard de estatísticas funcionando, e cadastro de eleitor com gênero/data de nascimento.** Antes de seguir:
+1. Confirmar que todos os arquivos das sessões `Gênero/Autocadastro/Dashboard` e `WhatsApp` estão de fato commitados (essa sessão teve bastante arquivo "esquecido" na cópia — vale rodar uma checagem completa por `grep -c` antes do próximo bloco grande, não só depois do erro aparecer).
 2. Salvar a versão atual deste documento.
-3. Testar o fluxo completo: cadastrar eleitor com endereço estruturado (cidade/UF/CEP/bairro), conferir a geocodificação automática, e testar o ajuste manual de pino num caso difícil (ex: condomínio).
 
-**Próxima conversa/sessão deve escolher entre (nenhuma é bloqueante):**
+**Combinado, mas NÃO iniciado — próxima sessão:**
+- **Anexo de comprovante financeiro** (JPEG/PNG/PDF) nos lançamentos do módulo Financeiro, usando **Cloudflare R2** (compatível com S3, sem taxa de saída, plano grátis de 10GB) — usuário ainda precisa criar a conta Cloudflare antes de começar.
+
+**Outras opções em aberto (nenhuma é bloqueante):**
 1. **Frontend de Lideranças, Agenda e Financeiro** — telas que ainda faltam pro piloto usar o sistema por completo no dia a dia (ainda só acessíveis via Swagger)
-2. **WhatsApp com opt-in** — já desenhado na conversa (webhook, `WhatsAppContact`, envio só pra quem deu opt-in), mas não iniciado — precisa de conta Meta Business Platform primeiro
-3. **Mapa mental de relacionamentos** (lideranças ↔ eleitores) — também já desenhado, não iniciado
-4. Módulos 8 (IA) e 9+ (funcionalidades da Fase 1 ainda não quebradas em módulos)
+2. **Mapa mental de relacionamentos** (lideranças ↔ eleitores) — já desenhado, não iniciado
+3. Módulos 8 (IA) e 9+ (funcionalidades da Fase 1 ainda não quebradas em módulos)
+4. WhatsApp com número de produção (sair do Sandbox do Twilio) — precisa de verificação de negócio na Meta
