@@ -12,7 +12,7 @@ opcional.
 """
 
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from uuid import UUID, uuid4
 
 from src.domain.shared.exceptions import DomainError, InvalidNameError
@@ -27,6 +27,17 @@ _VALID_LEGAL_BASES = frozenset(
         "exercicio_regular_de_direitos",
     }
 )
+
+# Opções inclusivas de propósito: "outro" existe justamente para não
+# forçar ninguém que não se reconhece nas opções fixas a mentir ou deixar
+# em branco. Dado sensível (identidade de gênero) — sempre opcional,
+# nunca exigido na criação do eleitor.
+_VALID_GENDERS = frozenset({"feminino", "masculino", "nao_binario", "prefere_nao_informar", "outro"})
+
+
+class InvalidGenderError(DomainError):
+    def __init__(self, value: str) -> None:
+        super().__init__(f"Gênero '{value}' inválido. Valores aceitos: {', '.join(sorted(_VALID_GENDERS))}")
 
 
 class InvalidLegalBasisError(DomainError):
@@ -51,6 +62,8 @@ class Voter:
     state: str | None
     postal_code: str | None
     neighborhood: str | None
+    gender: str | None
+    birth_date: date | None
     latitude: float | None
     longitude: float | None
     tags: list[str]
@@ -74,6 +87,8 @@ class Voter:
         state: str | None = None,
         postal_code: str | None = None,
         neighborhood: str | None = None,
+        gender: str | None = None,
+        birth_date: date | None = None,
         latitude: float | None = None,
         longitude: float | None = None,
         tags: list[str] | None = None,
@@ -83,6 +98,8 @@ class Voter:
     ) -> "Voter":
         Voter._validate_name(name)
         Voter._validate_legal_basis(legal_basis)
+        if gender is not None:
+            Voter._validate_gender(gender)
 
         now = datetime.now(UTC)
         return Voter(
@@ -96,6 +113,8 @@ class Voter:
             state=state.strip().upper() if state else None,  # sigla de UF, ex: "RJ" — normaliza maiúscula
             postal_code=postal_code.strip() if postal_code else None,
             neighborhood=neighborhood.strip() if neighborhood else None,
+            gender=gender,
+            birth_date=birth_date,
             latitude=latitude,
             longitude=longitude,
             tags=sorted(set(tags)) if tags else [],  # sem duplicatas, ordem estável
@@ -118,6 +137,11 @@ class Voter:
         if legal_basis not in _VALID_LEGAL_BASES:
             raise InvalidLegalBasisError(legal_basis)
 
+    @staticmethod
+    def _validate_gender(gender: str) -> None:
+        if gender not in _VALID_GENDERS:
+            raise InvalidGenderError(gender)
+
     @property
     def is_deleted(self) -> bool:
         return self.deleted_at is not None
@@ -137,6 +161,8 @@ class Voter:
         state: str | None = None,
         postal_code: str | None = None,
         neighborhood: str | None = None,
+        gender: str | None = None,
+        birth_date: date | None = None,
         latitude: float | None = None,
         longitude: float | None = None,
         tags: list[str] | None = None,
@@ -172,6 +198,11 @@ class Voter:
             self.postal_code = postal_code.strip() or None
         if neighborhood is not None:
             self.neighborhood = neighborhood.strip() or None
+        if gender is not None:
+            Voter._validate_gender(gender)
+            self.gender = gender
+        if birth_date is not None:
+            self.birth_date = birth_date
         if latitude is not None:
             self.latitude = latitude
         if longitude is not None:

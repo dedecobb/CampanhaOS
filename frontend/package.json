@@ -23,7 +23,8 @@
     "lucide-react": "^0.468.0",
     "@radix-ui/react-slot": "^1.1.1",
     "@radix-ui/react-label": "^2.1.1",
-    "mapbox-gl": "^3.9.0"
+    "mapbox-gl": "^3.9.0",
+    "recharts": "^2.15.0"
   },
   "devDependencies": {
     "@types/react": "^18.3.17",

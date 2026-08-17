@@ -9,6 +9,7 @@ permitindo isso.
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from datetime import date
 from uuid import UUID
 
 from src.domain.voters.entities import Voter
@@ -38,6 +39,20 @@ class Page:
         if self.page_size == 0:
             return 0
         return (self.total + self.page_size - 1) // self.page_size
+
+
+@dataclass(frozen=True)
+class VoterDashboardStats:
+    total: int
+    # Chave = valor do campo (ex: "feminino", "16-17"), valor = contagem.
+    # Dicionário em vez de campos fixos: mais fácil de adicionar/remover
+    # categorias no futuro sem mudar a assinatura do método.
+    gender_breakdown: dict[str, int]
+    age_breakdown: dict[str, int]
+    # Lista de (data, contagem de cadastros NAQUELE dia) — últimos 30 dias.
+    registration_growth: list[tuple[date, int]]
+    self_registered_count: int
+    staff_registered_count: int
 
 
 class VoterRepository(ABC):
@@ -73,5 +88,15 @@ class VoterRepository(ABC):
         como mecanismo de limitação, apropriado para este caso de uso
         específico (renderizar pontos num mapa, não navegar página a
         página por uma lista).
+        """
+
+    @abstractmethod
+    async def get_dashboard_stats(self, tenant_id: UUID) -> VoterDashboardStats:
+        """
+        Estatísticas agregadas para o painel do início — implementações
+        devem calcular tudo com agregação SQL (SUM/COUNT/GROUP BY), nunca
+        carregando todos os eleitores na memória pra somar em Python
+        (mesmo princípio já usado em FinanceRepository.get_summary,
+        Módulo 6).
         """
 

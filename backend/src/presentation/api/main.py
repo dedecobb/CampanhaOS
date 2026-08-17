@@ -25,10 +25,13 @@ from src.presentation.api.v1.routers import (
     admin_billing,
     admin_tenants,
     auth,
+    dashboard,
     events,
     finance,
     health,
     leaderships,
+    public_registration,
+    tenant_registration,
     voters,
     whatsapp,
 )
@@ -93,5 +96,8 @@ app.include_router(admin_auth.router, prefix=settings.api_v1_prefix)
 app.include_router(admin_tenants.router, prefix=settings.api_v1_prefix)
 app.include_router(admin_billing.router, prefix=settings.api_v1_prefix)
 app.include_router(whatsapp.router, prefix=settings.api_v1_prefix)
+app.include_router(tenant_registration.router, prefix=settings.api_v1_prefix)
+app.include_router(public_registration.router, prefix=settings.api_v1_prefix)
+app.include_router(dashboard.router, prefix=settings.api_v1_prefix)
 
 print(">>> [DIAGNÓSTICO] main.py carregado com sucesso, app FastAPI pronto.", flush=True)

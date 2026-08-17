@@ -37,6 +37,8 @@ class CreateVoterUseCase:
             state=input_data.state,
             postal_code=input_data.postal_code,
             neighborhood=input_data.neighborhood,
+            gender=input_data.gender,
+            birth_date=input_data.birth_date,
             latitude=input_data.latitude,
             longitude=input_data.longitude,
             tags=input_data.tags,

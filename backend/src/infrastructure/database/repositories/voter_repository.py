@@ -2,13 +2,14 @@
 Implementação concreta de VoterRepository usando SQLAlchemy async.
 """
 
+from datetime import date, timedelta
 from uuid import UUID
 
-from sqlalchemy import func, or_, select
+from sqlalchemy import case, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.domain.voters.entities import Voter
-from src.domain.voters.repository import Page, VoterFilter, VoterRepository
+from src.domain.voters.repository import Page, VoterDashboardStats, VoterFilter, VoterRepository
 from src.infrastructure.database.models import VoterModel
 
 
@@ -30,6 +31,8 @@ class SqlAlchemyVoterRepository(VoterRepository):
                 state=voter.state,
                 postal_code=voter.postal_code,
                 neighborhood=voter.neighborhood,
+                gender=voter.gender,
+                birth_date=voter.birth_date,
                 latitude=voter.latitude,
                 longitude=voter.longitude,
                 tags=voter.tags,
@@ -48,6 +51,8 @@ class SqlAlchemyVoterRepository(VoterRepository):
             existing.state = voter.state
             existing.postal_code = voter.postal_code
             existing.neighborhood = voter.neighborhood
+            existing.gender = voter.gender
+            existing.birth_date = voter.birth_date
             existing.latitude = voter.latitude
             existing.longitude = voter.longitude
             existing.tags = voter.tags
@@ -109,6 +114,65 @@ class SqlAlchemyVoterRepository(VoterRepository):
             page_size=page_size,
         )
 
+    async def get_dashboard_stats(self, tenant_id: UUID) -> VoterDashboardStats:
+        base_conditions = (VoterModel.tenant_id == tenant_id, VoterModel.deleted_at.is_(None))
+
+        total_stmt = select(func.count()).select_from(VoterModel).where(*base_conditions)
+        total = (await self._session.execute(total_stmt)).scalar_one()
+
+        # Gênero: agrupa direto pelo valor da coluna — None vira "nao_informado"
+        # já na hora de montar o dicionário (não no SQL), mais simples.
+        gender_stmt = select(VoterModel.gender, func.count()).where(*base_conditions).group_by(VoterModel.gender)
+        gender_rows = (await self._session.execute(gender_stmt)).all()
+        gender_breakdown = {(row[0] or "nao_informado"): row[1] for row in gender_rows}
+
+        # Idade: calculada a partir de birth_date usando a função age() do
+        # próprio Postgres (mais precisa que "ano atual - ano de
+        # nascimento", já considera se o aniversário já passou este ano),
+        # depois classificada em faixas via CASE — tudo no banco, nunca
+        # carregando eleitor por eleitor pra calcular em Python.
+        age_years = func.extract("year", func.age(func.current_date(), VoterModel.birth_date))
+        age_bracket = case(
+            (VoterModel.birth_date.is_(None), "nao_informado"),
+            (age_years.between(16, 17), "16-17"),
+            (age_years.between(18, 24), "18-24"),
+            (age_years.between(25, 34), "25-34"),
+            (age_years.between(35, 44), "35-44"),
+            (age_years.between(45, 59), "45-59"),
+            (age_years >= 60, "60+"),
+            else_="nao_informado",
+        )
+        age_stmt = select(age_bracket, func.count()).where(*base_conditions).group_by(age_bracket)
+        age_rows = (await self._session.execute(age_stmt)).all()
+        age_breakdown = {row[0]: row[1] for row in age_rows}
+
+        # Crescimento: últimos 30 dias, agrupado por dia do cadastro.
+        thirty_days_ago = date.today() - timedelta(days=30)
+        growth_stmt = (
+            select(func.date(VoterModel.created_at), func.count())
+            .where(*base_conditions, VoterModel.created_at >= thirty_days_ago)
+            .group_by(func.date(VoterModel.created_at))
+            .order_by(func.date(VoterModel.created_at))
+        )
+        growth_rows = (await self._session.execute(growth_stmt)).all()
+        registration_growth = [(row[0], row[1]) for row in growth_rows]
+
+        # Origem: autocadastro (created_by_user_id NULO) vs. cadastrado
+        # pela equipe (created_by_user_id preenchido).
+        origin = case((VoterModel.created_by_user_id.is_(None), "autocadastro"), else_="equipe")
+        origin_stmt = select(origin, func.count()).where(*base_conditions).group_by(origin)
+        origin_rows = (await self._session.execute(origin_stmt)).all()
+        origin_map = {row[0]: row[1] for row in origin_rows}
+
+        return VoterDashboardStats(
+            total=total,
+            gender_breakdown=gender_breakdown,
+            age_breakdown=age_breakdown,
+            registration_growth=registration_growth,
+            self_registered_count=origin_map.get("autocadastro", 0),
+            staff_registered_count=origin_map.get("equipe", 0),
+        )
+
     async def list_with_coordinates(self, tenant_id: UUID, limit: int = 1000) -> list[Voter]:
         stmt = (
             select(VoterModel)
@@ -136,6 +200,8 @@ class SqlAlchemyVoterRepository(VoterRepository):
             state=model.state,
             postal_code=model.postal_code,
             neighborhood=model.neighborhood,
+            gender=model.gender,
+            birth_date=model.birth_date,
             latitude=model.latitude,
             longitude=model.longitude,
             tags=list(model.tags),

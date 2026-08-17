@@ -3,7 +3,7 @@ DTOs dos casos de uso de eleitores.
 """
 
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import date, datetime
 from typing import Any
 from uuid import UUID
 
@@ -37,6 +37,8 @@ class CreateVoterInput:
     state: str | None = None
     postal_code: str | None = None
     neighborhood: str | None = None
+    gender: str | None = None
+    birth_date: date | None = None
     latitude: float | None = None
     longitude: float | None = None
     tags: list[str] = field(default_factory=list)
@@ -56,6 +58,8 @@ class UpdateVoterInput:
     state: str | None = None
     postal_code: str | None = None
     neighborhood: str | None = None
+    gender: str | None = None
+    birth_date: date | None = None
     latitude: float | None = None
     longitude: float | None = None
     tags: list[str] | None = None
@@ -101,6 +105,8 @@ class VoterOutput:
     state: str | None
     postal_code: str | None
     neighborhood: str | None
+    gender: str | None
+    birth_date: date | None
     latitude: float | None
     longitude: float | None
     tags: list[str]

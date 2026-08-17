@@ -51,6 +51,8 @@ class TenantModel(TimestampMixin, Base):
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="trial")
+    public_registration_token: Mapped[str | None] = mapped_column(String(64), unique=True)
+    voter_goal: Mapped[int | None]
 
     users: Mapped[list["UserModel"]] = relationship(back_populates="tenant")
     roles: Mapped[list["RoleModel"]] = relationship(back_populates="tenant")
@@ -223,8 +225,8 @@ class VoterModel(TimestampMixin, Base):
     tenant_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False
     )
-    created_by_user_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("users.id", ondelete="RESTRICT"), nullable=False
+    created_by_user_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="RESTRICT"), nullable=True
     )
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     phone: Mapped[str | None] = mapped_column(String(30))
@@ -233,6 +235,8 @@ class VoterModel(TimestampMixin, Base):
     state: Mapped[str | None] = mapped_column(String(2))
     postal_code: Mapped[str | None] = mapped_column(String(20))
     neighborhood: Mapped[str | None] = mapped_column(String(255))
+    gender: Mapped[str | None] = mapped_column(String(30))
+    birth_date: Mapped[date | None] = mapped_column(Date)
     latitude: Mapped[float | None]
     longitude: Mapped[float | None]
     tags: Mapped[list[str]] = mapped_column(ARRAY(String), nullable=False, default=list)

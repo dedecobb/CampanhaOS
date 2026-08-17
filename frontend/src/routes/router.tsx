@@ -10,6 +10,8 @@ import { FinanceTransactionsListPage } from "@/features/finance/pages/FinanceTra
 import { LeadershipFormPage } from "@/features/leaderships/pages/LeadershipFormPage";
 import { LeadershipsListPage } from "@/features/leaderships/pages/LeadershipsListPage";
 import { MapPage } from "@/features/map/pages/MapPage";
+import { PublicRegistrationPage } from "@/features/public-registration/pages/PublicRegistrationPage";
+import { RegistrationLinkPage } from "@/features/registration-link/pages/RegistrationLinkPage";
 import { VoterFormPage } from "@/features/voters/pages/VoterFormPage";
 import { VotersListPage } from "@/features/voters/pages/VotersListPage";
 
@@ -17,6 +19,12 @@ export const router = createBrowserRouter([
   {
     path: "/login",
     element: <LoginPage />,
+  },
+  {
+    // Rota PÚBLICA, de propósito fora do ProtectedRoute — quem abre esse
+    // link não tem (nem precisa ter) conta no sistema.
+    path: "/cadastro/:token",
+    element: <PublicRegistrationPage />,
   },
   {
     element: <ProtectedRoute />,
@@ -38,6 +46,7 @@ export const router = createBrowserRouter([
           { path: "/financeiro/novo", element: <FinanceTransactionFormPage /> },
           { path: "/financeiro/:id/editar", element: <FinanceTransactionFormPage /> },
           { path: "/mapa", element: <MapPage /> },
+          { path: "/link-cadastro", element: <RegistrationLinkPage /> },
         ],
       },
     ],

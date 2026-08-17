@@ -21,6 +21,8 @@ def voter_to_output(voter: Voter) -> VoterOutput:
         state=voter.state,
         postal_code=voter.postal_code,
         neighborhood=voter.neighborhood,
+        gender=voter.gender,
+        birth_date=voter.birth_date,
         latitude=voter.latitude,
         longitude=voter.longitude,
         tags=voter.tags,

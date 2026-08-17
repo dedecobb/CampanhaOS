@@ -20,11 +20,19 @@ class SqlAlchemyTenantRepository(TenantRepository):
     async def save(self, tenant: Tenant) -> None:
         existing = await self._session.get(TenantModel, tenant.id)
         if existing is None:
-            model = TenantModel(id=tenant.id, name=tenant.name, status=tenant.status.value)
+            model = TenantModel(
+                id=tenant.id,
+                name=tenant.name,
+                status=tenant.status.value,
+                public_registration_token=tenant.public_registration_token,
+                voter_goal=tenant.voter_goal,
+            )
             self._session.add(model)
         else:
             existing.name = tenant.name
             existing.status = tenant.status.value
+            existing.public_registration_token = tenant.public_registration_token
+            existing.voter_goal = tenant.voter_goal
 
         await self._session.flush()
 
@@ -33,6 +41,11 @@ class SqlAlchemyTenantRepository(TenantRepository):
         if model is None:
             return None
         return self._to_domain(model)
+
+    async def find_by_registration_token(self, token: str) -> Tenant | None:
+        stmt = select(TenantModel).where(TenantModel.public_registration_token == token)
+        model = (await self._session.execute(stmt)).scalar_one_or_none()
+        return self._to_domain(model) if model else None
 
     async def list_paginated(self, filters: TenantFilter, page: int, page_size: int) -> TenantPage:
         conditions = []
@@ -64,4 +77,6 @@ class SqlAlchemyTenantRepository(TenantRepository):
             name=model.name,
             status=TenantStatus(model.status),
             created_at=model.created_at,
+            public_registration_token=model.public_registration_token,
+            voter_goal=model.voter_goal,
         )

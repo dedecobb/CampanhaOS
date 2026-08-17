@@ -62,6 +62,8 @@ class UpdateVoterUseCase:
             state=input_data.state,
             postal_code=input_data.postal_code,
             neighborhood=input_data.neighborhood,
+            gender=input_data.gender,
+            birth_date=input_data.birth_date,
             # Só aplica coordenada manual aqui — a automática (geocodificada)
             # é setada depois, abaixo, usando os campos já atualizados.
             latitude=input_data.latitude,

@@ -2,7 +2,7 @@
 Schemas Pydantic dos endpoints de eleitores.
 """
 
-from datetime import datetime
+from datetime import date, datetime
 from typing import Literal
 from uuid import UUID
 
@@ -30,6 +30,8 @@ class VoterCreateRequest(BaseModel):
     state: str | None = Field(None, min_length=2, max_length=2, description="Sigla da UF, ex: RJ")
     postal_code: str | None = Field(None, max_length=20)
     neighborhood: str | None = Field(None, max_length=255)
+    gender: str | None = Field(None, max_length=30)
+    birth_date: date | None = None
     latitude: float | None = None
     longitude: float | None = None
     tags: list[str] = Field(default_factory=list)
@@ -56,6 +58,8 @@ class VoterUpdateRequest(BaseModel):
     state: str | None = Field(None, min_length=2, max_length=2)
     postal_code: str | None = Field(None, max_length=20)
     neighborhood: str | None = Field(None, max_length=255)
+    gender: str | None = Field(None, max_length=30)
+    birth_date: date | None = None
     latitude: float | None = None
     longitude: float | None = None
     tags: list[str] | None = None
@@ -79,6 +83,8 @@ class VoterResponse(BaseModel):
     state: str | None
     postal_code: str | None
     neighborhood: str | None
+    gender: str | None
+    birth_date: date | None
     latitude: float | None
     longitude: float | None
     tags: list[str]

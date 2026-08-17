@@ -25,7 +25,12 @@ from src.application.events.exceptions import EventNotFoundError, ResponsibleUse
 from src.application.finance.exceptions import FinanceTransactionNotFoundError
 from src.application.leaderships.exceptions import LeadershipNotFoundError
 from src.application.shared.exceptions import ApplicationError
+from src.application.tenant_settings.exceptions import (
+    InvalidRegistrationTokenError,
+    RegistrationRateLimitExceededError,
+)
 from src.application.voters.exceptions import VoterNotFoundError
+from src.application.voters.public_self_register import ConsentNotGivenError
 from src.application.whatsapp.exceptions import ContactNotOptedInError, WhatsAppContactNotFoundError
 from src.domain.shared.exceptions import DomainError
 
@@ -51,6 +56,12 @@ _APPLICATION_ERROR_STATUS_MAP: dict[type[ApplicationError], int] = {
     # é uma regra de compliance sendo aplicada: essa ação especificamente
     # não é permitida para este contato (ver ContactNotOptedInError).
     ContactNotOptedInError: status.HTTP_403_FORBIDDEN,
+    InvalidRegistrationTokenError: status.HTTP_404_NOT_FOUND,
+    # 429, não 400 — código HTTP específico pra "você excedeu um limite
+    # de taxa", existe exatamente pra esse caso, mais preciso que um 400
+    # genérico.
+    RegistrationRateLimitExceededError: status.HTTP_429_TOO_MANY_REQUESTS,
+    ConsentNotGivenError: status.HTTP_422_UNPROCESSABLE_CONTENT,
 }
 
 

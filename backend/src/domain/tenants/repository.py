@@ -56,3 +56,11 @@ class TenantRepository(ABC):
         Sem escopo de tenant (não faria sentido — é justamente a listagem
         DE tenants). Usado exclusivamente pelo painel de super-admin.
         """
+
+    @abstractmethod
+    async def find_by_registration_token(self, token: str) -> Tenant | None:
+        """
+        Usado pelo endpoint PÚBLICO de autocadastro (sem login) — a única
+        forma de identificar de qual campanha é um cadastro público é
+        através desse token, não do tenant_id diretamente.
+        """
