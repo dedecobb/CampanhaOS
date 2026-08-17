@@ -97,7 +97,7 @@ class ListVotersForMapInput:
 @dataclass(frozen=True)
 class VoterOutput:
     id: UUID
-    created_by_user_id: UUID
+    created_by_user_id: UUID | None
     name: str
     phone: str | None
     address: str | None

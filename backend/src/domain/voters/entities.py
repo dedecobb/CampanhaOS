@@ -54,7 +54,7 @@ _UNSET = object()  # sentinela: distingue "não foi passado" de "foi passado com
 class Voter:
     id: UUID
     tenant_id: UUID
-    created_by_user_id: UUID
+    created_by_user_id: UUID | None  # None = autocadastro público, ninguém da equipe criou
     name: str
     phone: str | None
     address: str | None
@@ -78,7 +78,7 @@ class Voter:
     @staticmethod
     def create(
         tenant_id: UUID,
-        created_by_user_id: UUID,
+        created_by_user_id: UUID | None,
         name: str,
         legal_basis: str,
         phone: str | None = None,
