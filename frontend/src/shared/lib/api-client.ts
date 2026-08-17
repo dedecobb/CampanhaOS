@@ -1,13 +1,26 @@
 import axios, { type AxiosError, type InternalAxiosRequestConfig } from "axios";
 
 /**
- * Formato de erro que nosso backend retorna (ver
- * backend/src/presentation/api/error_handlers.py) — todo erro da API tem
- * um campo `detail`, seja violação de regra de negócio (DomainError) seja
- * erro de caso de uso (ApplicationError).
+ * Formato de erro que nosso backend retorna. Tem DUAS formas possíveis:
+ *
+ * 1. Erro de regra de negócio (DomainError/ApplicationError, mapeado por
+ *    error_handlers.py) -> `detail` é uma STRING simples.
+ * 2. Erro de validação automática do FastAPI (422 — corpo da requisição
+ *    não bate com o schema Pydantic, gerado ANTES de qualquer código
+ *    nosso rodar) -> `detail` é uma LISTA de objetos, um por campo
+ *    inválido, formato `{loc, msg, type}`.
+ *
+ * Tratar só o caso 1 (como o tipo antigo assumia) faz o caso 2 aparecer
+ * quebrado na tela (`[object Object]`) ou simplesmente não aparecer nada.
  */
+export interface PydanticFieldError {
+  loc: (string | number)[];
+  msg: string;
+  type: string;
+}
+
 export interface ApiErrorResponse {
-  detail: string;
+  detail: string | PydanticFieldError[];
 }
 
 export const apiClient = axios.create({
@@ -96,7 +109,25 @@ apiClient.interceptors.response.use(
 export function getApiErrorMessage(error: unknown): string {
   if (axios.isAxiosError(error)) {
     const axiosError = error as AxiosError<ApiErrorResponse>;
-    return axiosError.response?.data?.detail ?? "Erro de comunicação com o servidor. Tente novamente.";
+    const detail = axiosError.response?.data?.detail;
+
+    if (typeof detail === "string") {
+      return detail;
+    }
+
+    if (Array.isArray(detail)) {
+      // Erro de validação automática do FastAPI (422) — monta uma
+      // mensagem legível a partir da lista de campos inválidos, em vez
+      // de deixar a lista "crua" chegar na tela.
+      return detail
+        .map((fieldError) => {
+          const fieldName = fieldError.loc[fieldError.loc.length - 1] ?? "campo";
+          return `${fieldName}: ${fieldError.msg}`;
+        })
+        .join(" | ");
+    }
+
+    return "Erro de comunicação com o servidor. Tente novamente.";
   }
   return "Erro inesperado. Tente novamente.";
 }
