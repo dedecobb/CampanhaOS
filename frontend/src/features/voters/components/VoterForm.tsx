@@ -4,6 +4,7 @@ import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
 import { Select } from "@/shared/components/ui/select";
 import { LocationPicker } from "@/features/voters/components/LocationPicker";
+import { normalizeStateInput } from "@/shared/lib/brazilian-states";
 import { GENDER_OPTIONS, LEGAL_BASIS_OPTIONS, type Voter, type VoterFormValues } from "@/features/voters/api/types";
 
 interface VoterFormProps {
@@ -125,7 +126,7 @@ export function VoterForm({ initialVoter, onSubmit, isSubmitting, submitLabel }:
           <Input
             id="state"
             value={values.state}
-            onChange={(e) => updateField("state", e.target.value.toUpperCase())}
+            onChange={(e) => updateField("state", normalizeStateInput(e.target.value))}
             maxLength={2}
             placeholder="RJ"
           />

@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/sha
 import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
 import { Select } from "@/shared/components/ui/select";
+import { normalizeStateInput } from "@/shared/lib/brazilian-states";
 import { getApiErrorMessage } from "@/shared/lib/api-client";
 import { getCampaignInfo, submitPublicRegistration } from "@/features/public-registration/api/public-registration-api";
 import { GENDER_OPTIONS } from "@/features/public-registration/api/types";
@@ -160,7 +161,7 @@ export function PublicRegistrationPage() {
               </div>
               <div className="w-20 space-y-2">
                 <Label htmlFor="state">UF</Label>
-                <Input id="state" value={state} onChange={(e) => setState(e.target.value.toUpperCase())} maxLength={2} />
+                <Input id="state" value={state} onChange={(e) => setState(normalizeStateInput(e.target.value))} maxLength={2} />
               </div>
               <div className="w-32 space-y-2">
                 <Label htmlFor="postal_code">CEP</Label>
