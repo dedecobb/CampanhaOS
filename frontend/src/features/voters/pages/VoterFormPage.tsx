@@ -34,6 +34,8 @@ export function VoterFormPage() {
       state: values.state || null,
       postal_code: values.postal_code || null,
       neighborhood: values.neighborhood || null,
+      gender: values.gender || null,
+      birth_date: values.birth_date || null,
       tags,
       notes: values.notes || null,
       // Só manda coordenada se o usuário ajustou o pino manualmente

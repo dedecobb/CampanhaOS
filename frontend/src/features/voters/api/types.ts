@@ -16,6 +16,14 @@ export const LEGAL_BASIS_OPTIONS = [
   { value: "exercicio_regular_de_direitos", label: "Exercício regular de direitos" },
 ] as const;
 
+export const GENDER_OPTIONS = [
+  { value: "feminino", label: "Feminino" },
+  { value: "masculino", label: "Masculino" },
+  { value: "nao_binario", label: "Não-binário" },
+  { value: "prefere_nao_informar", label: "Prefere não informar" },
+  { value: "outro", label: "Outro" },
+] as const;
+
 export interface Voter {
   id: string;
   created_by_user_id: string;
@@ -26,6 +34,8 @@ export interface Voter {
   state: string | null;
   postal_code: string | null;
   neighborhood: string | null;
+  gender: string | null;
+  birth_date: string | null;
   latitude: number | null;
   longitude: number | null;
   tags: string[];
@@ -54,6 +64,8 @@ export interface VoterFormValues {
   state: string;
   postal_code: string;
   neighborhood: string;
+  gender: string;
+  birth_date: string;
   latitude: number | null;
   longitude: number | null;
   /**
@@ -76,6 +88,8 @@ export interface VoterCreateRequest {
   state?: string | null;
   postal_code?: string | null;
   neighborhood?: string | null;
+  gender?: string | null;
+  birth_date?: string | null;
   latitude?: number | null;
   longitude?: number | null;
   tags?: string[];
