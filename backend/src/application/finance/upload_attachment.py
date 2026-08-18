@@ -44,18 +44,7 @@ class UploadFinanceAttachmentUseCase:
         self._file_storage = file_storage
 
     async def execute(self, input_data: UploadFinanceAttachmentInput) -> None:
-        # >>> DIAGNÓSTICO TEMPORÁRIO — remover depois de resolver o 404 <<<
-        print(
-            f">>> [DIAGNÓSTICO UPLOAD] Buscando transação — tenant_id={input_data.tenant_id!r}, "
-            f"transaction_id={input_data.transaction_id!r}",
-            flush=True,
-        )
         transaction = await self._finance_repository.find_by_id(input_data.tenant_id, input_data.transaction_id)
-        print(
-            f">>> [DIAGNÓSTICO UPLOAD] Resultado: transaction={'ENCONTRADA' if transaction else 'None'}"
-            + (f", is_deleted={transaction.is_deleted}" if transaction else ""),
-            flush=True,
-        )
         if transaction is None or transaction.is_deleted:
             raise FinanceTransactionNotFoundError
 

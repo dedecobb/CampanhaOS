@@ -39,10 +39,13 @@ async def set_voter_goal(
     stats_use_case: Annotated[GetDashboardStatsUseCase, Depends(get_dashboard_stats_use_case)],
 ) -> DashboardStatsResponse:
     await set_use_case.execute(SetVoterGoalInput(tenant_id=current_user.tenant_id, goal=request.goal))
-    await session.commit()
-    # Retorna as estatísticas já atualizadas — evita o frontend precisar
-    # de uma segunda chamada só pra ver a meta nova refletida.
+    # IMPORTANTE: busca ANTES do commit — o contexto de tenant do RLS
+    # (set_config com is_local=true) tem escopo de TRANSAÇÃO, é
+    # descartado no commit. Buscar depois do commit rodaria sem contexto
+    # de tenant, e o RLS bloquearia tudo. Ver mesmo bug corrigido no
+    # módulo de anexo financeiro (upload_attachment).
     output = await stats_use_case.execute(GetDashboardStatsInput(tenant_id=current_user.tenant_id))
+    await session.commit()
     return DashboardStatsResponse.model_validate(output)
 
 

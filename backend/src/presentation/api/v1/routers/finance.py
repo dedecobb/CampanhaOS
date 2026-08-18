@@ -156,13 +156,6 @@ async def upload_attachment(
     file: UploadFile = File(...),
 ) -> FinanceTransactionResponse:
     file_bytes = await file.read()
-    # >>> DIAGNÓSTICO TEMPORÁRIO — remover depois de resolver o 404 <<<
-    print(
-        f">>> [DIAGNÓSTICO ROUTER] transaction_id (da URL)={transaction_id!r}, "
-        f"current_user.tenant_id={current_user.tenant_id!r}, "
-        f"file.filename={file.filename!r}, tamanho={len(file_bytes)} bytes",
-        flush=True,
-    )
     await use_case.execute(
         UploadFinanceAttachmentInput(
             tenant_id=current_user.tenant_id,
@@ -171,14 +164,19 @@ async def upload_attachment(
             file_bytes=file_bytes,
         )
     )
-    await session.commit()
-    print(">>> [DIAGNÓSTICO ROUTER] Upload concluído e commitado, buscando transação de novo pra resposta...", flush=True)
-    # Retorna o lançamento já atualizado — evita o frontend precisar de
-    # uma segunda chamada só pra ver o anexo refletido.
+    # IMPORTANTE: busca de novo ANTES do commit, não depois. O contexto de
+    # tenant do RLS (`set_config(..., is_local=true)`) tem escopo de
+    # TRANSAÇÃO — é descartado automaticamente no commit. Se buscássemos
+    # depois de comitar, essa segunda consulta rodaria sem contexto de
+    # tenant nenhum, e o RLS bloquearia tudo (retornando vazio, que o
+    # código interpretaria erroneamente como "não encontrado"). Buscar
+    # ANTES do commit funciona porque a mesma transação já enxerga as
+    # próprias mudanças (não precisa ter comitado ainda pra "ver a si
+    # mesma").
     output = await get_use_case.execute(
         GetFinanceTransactionInput(tenant_id=current_user.tenant_id, transaction_id=transaction_id)
     )
-    print(">>> [DIAGNÓSTICO ROUTER] Segunda busca OK, retornando resposta.", flush=True)
+    await session.commit()
     return FinanceTransactionResponse.model_validate(output)
 
 
