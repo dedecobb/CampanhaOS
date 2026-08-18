@@ -172,11 +172,13 @@ async def upload_attachment(
         )
     )
     await session.commit()
+    print(">>> [DIAGNÓSTICO ROUTER] Upload concluído e commitado, buscando transação de novo pra resposta...", flush=True)
     # Retorna o lançamento já atualizado — evita o frontend precisar de
     # uma segunda chamada só pra ver o anexo refletido.
     output = await get_use_case.execute(
         GetFinanceTransactionInput(tenant_id=current_user.tenant_id, transaction_id=transaction_id)
     )
+    print(">>> [DIAGNÓSTICO ROUTER] Segunda busca OK, retornando resposta.", flush=True)
     return FinanceTransactionResponse.model_validate(output)
 
 
