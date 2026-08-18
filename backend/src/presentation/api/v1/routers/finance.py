@@ -156,6 +156,13 @@ async def upload_attachment(
     file: UploadFile = File(...),
 ) -> FinanceTransactionResponse:
     file_bytes = await file.read()
+    # >>> DIAGNÓSTICO TEMPORÁRIO — remover depois de resolver o 404 <<<
+    print(
+        f">>> [DIAGNÓSTICO ROUTER] transaction_id (da URL)={transaction_id!r}, "
+        f"current_user.tenant_id={current_user.tenant_id!r}, "
+        f"file.filename={file.filename!r}, tamanho={len(file_bytes)} bytes",
+        flush=True,
+    )
     await use_case.execute(
         UploadFinanceAttachmentInput(
             tenant_id=current_user.tenant_id,
