@@ -16,8 +16,21 @@ import { TRANSACTION_TYPE_OPTIONS, formatCurrencyFromString } from "@/features/f
 
 const PAGE_SIZE = 20;
 
+/**
+ * `occurred_at` é uma data SEM hora (ex: "2026-08-18") — passar essa
+ * string direto pro construtor `new Date(...)` faz o JavaScript
+ * interpretar como meia-noite em UTC, e `.toLocaleDateString()` depois
+ * mostra isso no fuso LOCAL do navegador. Como o Brasil fica atrás do
+ * UTC, meia-noite UTC de um dia vira noite do dia ANTERIOR aqui — a
+ * data "volta" um dia na tela, mesmo estando correta no banco.
+ *
+ * Construir a data com ano/mês/dia separados (em vez de string ISO)
+ * evita isso — esse construtor usa hora LOCAL diretamente, sem passar
+ * por UTC no meio do caminho.
+ */
 function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("pt-BR");
+  const [year, month, day] = iso.split("-").map(Number);
+  return new Date(year, month - 1, day).toLocaleDateString("pt-BR");
 }
 
 export function FinanceTransactionsListPage() {
