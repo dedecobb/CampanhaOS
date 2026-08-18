@@ -6,12 +6,15 @@ interface AgeBarChartProps {
 }
 
 export function AgeBarChart({ ageBreakdown }: AgeBarChartProps) {
+  // Mesma proteção defensiva das outras — evita quebrar a página
+  // inteira se esse campo vier undefined.
+  const safeAgeBreakdown = ageBreakdown ?? {};
   // Ordem fixa (AGE_BRACKET_ORDER), não a ordem que veio da API — o
   // backend agrupa via SQL GROUP BY, que não garante nenhuma ordem
   // específica de retorno.
-  const data = AGE_BRACKET_ORDER.filter((bracket) => (ageBreakdown[bracket] ?? 0) > 0).map((bracket) => ({
+  const data = AGE_BRACKET_ORDER.filter((bracket) => (safeAgeBreakdown[bracket] ?? 0) > 0).map((bracket) => ({
     bracket: AGE_BRACKET_LABELS[bracket] ?? bracket,
-    quantidade: ageBreakdown[bracket] ?? 0,
+    quantidade: safeAgeBreakdown[bracket] ?? 0,
   }));
 
   if (data.length === 0) {

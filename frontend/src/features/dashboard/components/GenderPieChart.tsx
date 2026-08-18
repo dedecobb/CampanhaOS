@@ -6,7 +6,10 @@ interface GenderPieChartProps {
 }
 
 export function GenderPieChart({ genderBreakdown }: GenderPieChartProps) {
-  const data = Object.entries(genderBreakdown)
+  // Mesma proteção defensiva do LeadershipBarChart — evita quebrar a
+  // página inteira se esse campo específico vier undefined (ex:
+  // descompasso temporário entre deploy do frontend e do backend).
+  const data = Object.entries(genderBreakdown ?? {})
     .filter(([, count]) => count > 0)
     .map(([key, count]) => ({
       key,

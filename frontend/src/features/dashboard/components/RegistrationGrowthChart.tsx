@@ -12,7 +12,9 @@ interface RegistrationGrowthChartProps {
  * claramente os dias parados.
  */
 function fillLast30Days(points: DashboardStats["registration_growth"]): { day: string; quantidade: number }[] {
-  const countByDay = new Map(points.map((p) => [p.day, p.count]));
+  // Mesma proteção defensiva das outras — evita quebrar a página
+  // inteira se esse campo vier undefined.
+  const countByDay = new Map((points ?? []).map((p) => [p.day, p.count]));
   const result: { day: string; quantidade: number }[] = [];
 
   for (let i = 29; i >= 0; i--) {

@@ -6,7 +6,12 @@ interface LeadershipBarChartProps {
 }
 
 export function LeadershipBarChart({ leadershipBreakdown }: LeadershipBarChartProps) {
-  const data = leadershipBreakdown
+  // Proteção defensiva: se o backend ainda não tiver esse campo (ex:
+  // descompasso temporário entre deploy do frontend e do backend,
+  // aconteceu de verdade em produção), `leadershipBreakdown` chega como
+  // `undefined` em vez de lista vazia — sem essa proteção, a página
+  // inteira quebra em vez de só esse gráfico específico ficar vazio.
+  const data = (leadershipBreakdown ?? [])
     .filter((point) => point.count > 0)
     .map((point) => ({ name: point.leadership_name, quantidade: point.count }));
 
