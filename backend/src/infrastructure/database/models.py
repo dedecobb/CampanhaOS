@@ -14,7 +14,7 @@ import uuid
 from datetime import date, datetime
 from decimal import Decimal
 
-from sqlalchemy import Boolean, Date, DateTime, ForeignKey, Index, Numeric, String, UniqueConstraint, func
+from sqlalchemy import BigInteger, Boolean, Date, DateTime, ForeignKey, Index, Numeric, String, UniqueConstraint, func
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB, UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
@@ -273,6 +273,10 @@ class FinanceTransactionModel(TimestampMixin, Base):
     description: Mapped[str | None] = mapped_column(String)
     occurred_at: Mapped[date] = mapped_column(Date, nullable=False)
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    attachment_storage_key: Mapped[str | None] = mapped_column(String(500))
+    attachment_filename: Mapped[str | None] = mapped_column(String(255))
+    attachment_content_type: Mapped[str | None] = mapped_column(String(100))
+    attachment_size_bytes: Mapped[int | None] = mapped_column(BigInteger)
 
 
 class PlanModel(TimestampMixin, Base):

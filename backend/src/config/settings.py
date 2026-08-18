@@ -73,6 +73,12 @@ class Settings(BaseSettings):
     twilio_auth_token: str | None = None
     twilio_whatsapp_from_number: str | None = None  # formato "whatsapp:+14155238886"
 
+    # --- Armazenamento de arquivo (Cloudflare R2) ---
+    cloudflare_account_id: str | None = None
+    cloudflare_r2_access_key_id: str | None = None
+    cloudflare_r2_secret_access_key: str | None = None
+    cloudflare_r2_bucket_name: str | None = None
+
     @property
     def is_production(self) -> bool:
         return self.environment == "production"

@@ -14,6 +14,9 @@ def transaction_to_output(transaction: FinanceTransaction) -> FinanceTransaction
         occurred_at=transaction.occurred_at,
         created_at=transaction.created_at,
         updated_at=transaction.updated_at,
+        attachment_filename=transaction.attachment_filename,
+        attachment_content_type=transaction.attachment_content_type,
+        attachment_size_bytes=transaction.attachment_size_bytes,
     )
 
 

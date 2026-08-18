@@ -60,6 +60,14 @@ class FinanceTransactionOutput:
     occurred_at: date
     created_at: datetime
     updated_at: datetime
+    # Deliberadamente SEM `attachment_storage_key` aqui — é um caminho
+    # interno de armazenamento, nada de útil pro frontend, e não deveria
+    # nunca vazar numa resposta de API. O frontend só precisa saber SE
+    # tem anexo (e o nome/tipo/tamanho pra exibir), o link de download de
+    # verdade é gerado sob demanda (ver GetFinanceAttachmentDownloadUrlUseCase).
+    attachment_filename: str | None = None
+    attachment_content_type: str | None = None
+    attachment_size_bytes: int | None = None
 
 
 @dataclass(frozen=True)

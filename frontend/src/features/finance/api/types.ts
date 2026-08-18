@@ -27,6 +27,14 @@ export interface FinanceTransaction {
   occurred_at: string;
   created_at: string;
   updated_at: string;
+  attachment_filename: string | null;
+  attachment_content_type: string | null;
+  attachment_size_bytes: number | null;
+}
+
+export interface FinanceAttachmentDownloadResponse {
+  download_url: string;
+  filename: string;
 }
 
 export interface FinanceSummary {
@@ -79,4 +87,11 @@ export function formatCurrencyFromString(value: string): string {
   const [integerPart, decimalPart = "00"] = unsigned.split(".");
   const withThousands = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
   return `${isNegative ? "-" : ""}R$ ${withThousands},${decimalPart}`;
+}
+
+/** Formata bytes em KB/MB legível, pra exibição do tamanho do anexo. */
+export function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }

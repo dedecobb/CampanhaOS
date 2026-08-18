@@ -1,5 +1,6 @@
 import { useNavigate, useParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
+import { FinanceAttachmentSection } from "@/features/finance/components/FinanceAttachmentSection";
 import { FinanceTransactionForm } from "@/features/finance/components/FinanceTransactionForm";
 import {
   useCreateFinanceTransaction,
@@ -46,13 +47,16 @@ export function FinanceTransactionFormPage() {
         <CardHeader>
           <CardTitle>{isEditMode ? "Editar Lançamento" : "Novo Lançamento"}</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-6">
           <FinanceTransactionForm
             initialTransaction={existingTransaction}
             onSubmit={handleSubmit}
             isSubmitting={createTransaction.isPending || updateTransaction.isPending}
             submitLabel={isEditMode ? "Salvar alterações" : "Cadastrar lançamento"}
           />
+          {isEditMode && existingTransaction && (
+            <FinanceAttachmentSection transaction={existingTransaction} />
+          )}
         </CardContent>
       </Card>
     </div>

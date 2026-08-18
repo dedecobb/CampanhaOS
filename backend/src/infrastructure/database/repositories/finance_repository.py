@@ -30,6 +30,10 @@ class SqlAlchemyFinanceRepository(FinanceRepository):
                 description=transaction.description,
                 occurred_at=transaction.occurred_at,
                 deleted_at=transaction.deleted_at,
+                attachment_storage_key=transaction.attachment_storage_key,
+                attachment_filename=transaction.attachment_filename,
+                attachment_content_type=transaction.attachment_content_type,
+                attachment_size_bytes=transaction.attachment_size_bytes,
             )
             self._session.add(model)
         else:
@@ -39,6 +43,10 @@ class SqlAlchemyFinanceRepository(FinanceRepository):
             existing.description = transaction.description
             existing.occurred_at = transaction.occurred_at
             existing.deleted_at = transaction.deleted_at
+            existing.attachment_storage_key = transaction.attachment_storage_key
+            existing.attachment_filename = transaction.attachment_filename
+            existing.attachment_content_type = transaction.attachment_content_type
+            existing.attachment_size_bytes = transaction.attachment_size_bytes
 
         await self._session.flush()
 
@@ -125,4 +133,8 @@ class SqlAlchemyFinanceRepository(FinanceRepository):
             created_at=model.created_at,
             updated_at=model.updated_at,
             deleted_at=model.deleted_at,
+            attachment_storage_key=model.attachment_storage_key,
+            attachment_filename=model.attachment_filename,
+            attachment_content_type=model.attachment_content_type,
+            attachment_size_bytes=model.attachment_size_bytes,
         )

@@ -54,6 +54,9 @@ dependencies = [
     # webhook silenciosamente (só aparece no log do servidor, nunca numa
     # resposta HTTP com corpo explicativo).
     "python-multipart>=0.0.9",
+
+    # --- Armazenamento de arquivo (Cloudflare R2, compatível com S3) ---
+    "boto3>=1.35.0",
 ]
 
 [project.optional-dependencies]
