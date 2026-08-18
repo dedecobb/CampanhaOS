@@ -2,6 +2,7 @@ import { useAuth } from "@/features/auth/context/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
 import { AgeBarChart } from "@/features/dashboard/components/AgeBarChart";
 import { GenderPieChart } from "@/features/dashboard/components/GenderPieChart";
+import { LeadershipBarChart } from "@/features/dashboard/components/LeadershipBarChart";
 import { RegistrationGrowthChart } from "@/features/dashboard/components/RegistrationGrowthChart";
 import { VoterGoalCard } from "@/features/dashboard/components/VoterGoalCard";
 import { useDashboardStats } from "@/features/dashboard/hooks/use-dashboard-stats";
@@ -78,6 +79,15 @@ export function DashboardPage() {
             </CardHeader>
             <CardContent>
               <RegistrationGrowthChart registrationGrowth={data.registration_growth} />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Eleitores por Liderança</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <LeadershipBarChart leadershipBreakdown={data.leadership_breakdown} />
             </CardContent>
           </Card>
         </>

@@ -75,6 +75,7 @@ async def self_register(
             neighborhood=payload.neighborhood,
             gender=payload.gender,
             birth_date=payload.birth_date,
+            leadership_id=payload.leadership_id,
         )
     )
     await session.commit()

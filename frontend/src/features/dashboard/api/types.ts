@@ -3,6 +3,11 @@ export interface RegistrationGrowthPoint {
   count: number;
 }
 
+export interface LeadershipBreakdownPoint {
+  leadership_name: string;
+  count: number;
+}
+
 export interface DashboardStats {
   total_voters: number;
   voter_goal: number | null;
@@ -11,6 +16,7 @@ export interface DashboardStats {
   registration_growth: RegistrationGrowthPoint[];
   self_registered_count: number;
   staff_registered_count: number;
+  leadership_breakdown: LeadershipBreakdownPoint[];
 }
 
 /** Ordem fixa das faixas etárias — o backend não garante essa ordem (vem de GROUP BY). */

@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.domain.voters.entities import Voter
 from src.domain.voters.repository import Page, VoterDashboardStats, VoterFilter, VoterRepository
-from src.infrastructure.database.models import VoterModel
+from src.infrastructure.database.models import LeadershipModel, VoterModel
 
 
 class SqlAlchemyVoterRepository(VoterRepository):
@@ -164,6 +164,20 @@ class SqlAlchemyVoterRepository(VoterRepository):
         origin_rows = (await self._session.execute(origin_stmt)).all()
         origin_map = {row[0]: row[1] for row in origin_rows}
 
+        # Liderança: LEFT JOIN pra incluir também quem NÃO tem liderança
+        # vinculada (leadership_id NULL) — esses caem no grupo "Sem
+        # liderança" em vez de sumir da contagem.
+        leadership_stmt = (
+            select(LeadershipModel.name, func.count())
+            .select_from(VoterModel)
+            .outerjoin(LeadershipModel, VoterModel.leadership_id == LeadershipModel.id)
+            .where(*base_conditions)
+            .group_by(LeadershipModel.name)
+            .order_by(func.count().desc())
+        )
+        leadership_rows = (await self._session.execute(leadership_stmt)).all()
+        leadership_breakdown = [(name or "Sem liderança", count) for name, count in leadership_rows]
+
         return VoterDashboardStats(
             total=total,
             gender_breakdown=gender_breakdown,
@@ -171,6 +185,7 @@ class SqlAlchemyVoterRepository(VoterRepository):
             registration_growth=registration_growth,
             self_registered_count=origin_map.get("autocadastro", 0),
             staff_registered_count=origin_map.get("equipe", 0),
+            leadership_breakdown=leadership_breakdown,
         )
 
     async def list_with_coordinates(self, tenant_id: UUID, limit: int = 1000) -> list[Voter]:

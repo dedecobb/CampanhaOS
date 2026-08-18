@@ -18,6 +18,7 @@ from src.application.tenant_settings.exceptions import (
 )
 from src.application.voters.dto import VoterOutput
 from src.application.voters.mapper import voter_to_output
+from src.domain.leaderships.repository import LeadershipRepository
 from src.domain.tenants.repository import TenantRepository
 from src.domain.voters.entities import Voter
 from src.domain.voters.repository import VoterRepository
@@ -47,6 +48,11 @@ class PublicSelfRegisterVoterInput:
     neighborhood: str | None = None
     gender: str | None = None
     birth_date: date | None = None
+    # Vem do link específico de uma liderança (?lideranca={id}) — opcional
+    # de propósito, o autocadastro pelo link GERAL da campanha não tem
+    # isso preenchido, só quando a pessoa entra pelo link de um líder
+    # específico.
+    leadership_id: UUID | None = None
 
 
 class ConsentNotGivenError(ApplicationError):
@@ -68,12 +74,14 @@ class PublicSelfRegisterVoterUseCase:
         self,
         tenant_repository: TenantRepository,
         voter_repository: VoterRepository,
+        leadership_repository: LeadershipRepository,
         geocoding_service: GeocodingService,
         rate_limiter: RateLimiter,
         set_tenant_context: SetTenantContextCallable,
     ) -> None:
         self._tenant_repository = tenant_repository
         self._voter_repository = voter_repository
+        self._leadership_repository = leadership_repository
         self._geocoding_service = geocoding_service
         self._rate_limiter = rate_limiter
         self._set_tenant_context = set_tenant_context
@@ -104,6 +112,19 @@ class PublicSelfRegisterVoterUseCase:
         # padrão já usado no webhook do WhatsApp.
         await self._set_tenant_context(tenant.id)
 
+        # Confirma que a liderança pertence a ESTE tenant antes de
+        # vincular — sem essa checagem, alguém poderia forjar um
+        # `leadership_id` de outra campanha na URL. Se vier um id
+        # inválido (liderança já excluída, link antigo, url adulterada),
+        # NÃO bloqueia o cadastro — só ignora o vínculo silenciosamente.
+        # Rastrear "quem indicou" é um bônus, nunca deveria impedir um
+        # apoiador de verdade de se cadastrar.
+        validated_leadership_id: UUID | None = None
+        if input_data.leadership_id is not None:
+            leadership_exists = await self._leadership_repository.exists(tenant.id, input_data.leadership_id)
+            if leadership_exists:
+                validated_leadership_id = input_data.leadership_id
+
         voter = Voter.create(
             tenant_id=tenant.id,
             created_by_user_id=None,  # autocadastro — ninguém da equipe criou
@@ -120,6 +141,7 @@ class PublicSelfRegisterVoterUseCase:
             neighborhood=input_data.neighborhood,
             gender=input_data.gender,
             birth_date=input_data.birth_date,
+            leadership_id=validated_leadership_id,
         )
 
         if voter.has_geocodable_address:

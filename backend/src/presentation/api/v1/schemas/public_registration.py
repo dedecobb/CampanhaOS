@@ -4,6 +4,7 @@ Schemas dos endpoints PÚBLICOS de autocadastro — sem autenticação.
 
 from datetime import date
 from typing import Literal
+from uuid import UUID
 
 from pydantic import BaseModel, Field
 
@@ -29,6 +30,12 @@ class PublicVoterRegistrationRequest(BaseModel):
     neighborhood: str | None = Field(None, max_length=255)
     gender: GenderLiteral | None = None
     birth_date: date | None = None
+    # Vem do link específico de uma liderança (?lideranca={id}) — o
+    # frontend lê da URL e manda aqui; None quando é o link geral da
+    # campanha. Validado de verdade no caso de uso (ver
+    # public_self_register.py) — um id inválido/de outro tenant não
+    # bloqueia o cadastro, só não vincula.
+    leadership_id: UUID | None = None
 
 
 class PublicVoterRegistrationResponse(BaseModel):

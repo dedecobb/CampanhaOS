@@ -15,6 +15,12 @@ class RegistrationGrowthPoint:
 
 
 @dataclass(frozen=True)
+class LeadershipBreakdownPoint:
+    leadership_name: str
+    count: int
+
+
+@dataclass(frozen=True)
 class DashboardStatsOutput:
     total_voters: int
     voter_goal: int | None
@@ -23,6 +29,7 @@ class DashboardStatsOutput:
     registration_growth: list[RegistrationGrowthPoint] = field(default_factory=list)
     self_registered_count: int = 0
     staff_registered_count: int = 0
+    leadership_breakdown: list[LeadershipBreakdownPoint] = field(default_factory=list)
 
 
 @dataclass(frozen=True)

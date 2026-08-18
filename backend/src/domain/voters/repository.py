@@ -53,6 +53,11 @@ class VoterDashboardStats:
     registration_growth: list[tuple[date, int]]
     self_registered_count: int
     staff_registered_count: int
+    # Lista de (nome da liderança, quantidade de eleitores vinculados),
+    # ordenada da maior pra menor. "Sem liderança" agrupa quem não tem
+    # vínculo nenhum (cadastro direto pela equipe sem atribuir, ou pelo
+    # link geral da campanha, sem passar pelo link de nenhum líder).
+    leadership_breakdown: list[tuple[str, int]]
 
 
 class VoterRepository(ABC):

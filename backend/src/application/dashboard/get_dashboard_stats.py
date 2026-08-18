@@ -1,4 +1,9 @@
-from src.application.dashboard.dto import DashboardStatsOutput, GetDashboardStatsInput, RegistrationGrowthPoint
+from src.application.dashboard.dto import (
+    DashboardStatsOutput,
+    GetDashboardStatsInput,
+    LeadershipBreakdownPoint,
+    RegistrationGrowthPoint,
+)
 from src.domain.tenants.repository import TenantRepository
 from src.domain.voters.repository import VoterRepository
 
@@ -24,4 +29,7 @@ class GetDashboardStatsUseCase:
             registration_growth=[RegistrationGrowthPoint(day=d, count=c) for d, c in stats.registration_growth],
             self_registered_count=stats.self_registered_count,
             staff_registered_count=stats.staff_registered_count,
+            leadership_breakdown=[
+                LeadershipBreakdownPoint(leadership_name=name, count=c) for name, c in stats.leadership_breakdown
+            ],
         )

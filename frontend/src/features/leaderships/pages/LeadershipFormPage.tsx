@@ -1,6 +1,7 @@
 import { useNavigate, useParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
 import { LeadershipForm } from "@/features/leaderships/components/LeadershipForm";
+import { LeadershipRegistrationLinkSection } from "@/features/leaderships/components/LeadershipRegistrationLinkSection";
 import { useCreateLeadership, useLeadership, useUpdateLeadership } from "@/features/leaderships/hooks/use-leaderships";
 import type { LeadershipFormValues } from "@/features/leaderships/api/types";
 
@@ -25,10 +26,15 @@ export function LeadershipFormPage() {
 
     if (isEditMode) {
       await updateLeadership.mutateAsync(payload);
+      navigate("/liderancas");
     } else {
-      await createLeadership.mutateAsync(payload);
+      // Depois de CRIAR, vai direto pra edição da liderança recém-criada
+      // (não pra lista) — é ali que o link de cadastro dela aparece, e o
+      // fluxo combinado é "assim que cadastra, já tem o link pronto pra
+      // mandar pro líder".
+      const created = await createLeadership.mutateAsync(payload);
+      navigate(`/liderancas/${created.id}/editar`);
     }
-    navigate("/liderancas");
   }
 
   if (isEditMode && isLoadingLeadership) {
@@ -41,13 +47,16 @@ export function LeadershipFormPage() {
         <CardHeader>
           <CardTitle>{isEditMode ? "Editar Liderança" : "Nova Liderança"}</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-6">
           <LeadershipForm
             initialLeadership={existingLeadership}
             onSubmit={handleSubmit}
             isSubmitting={createLeadership.isPending || updateLeadership.isPending}
             submitLabel={isEditMode ? "Salvar alterações" : "Cadastrar liderança"}
           />
+          {isEditMode && existingLeadership && (
+            <LeadershipRegistrationLinkSection leadershipId={existingLeadership.id} />
+          )}
         </CardContent>
       </Card>
     </div>

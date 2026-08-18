@@ -13,6 +13,7 @@ from src.infrastructure.database.session import set_tenant_context
 from src.infrastructure.rate_limiting.redis_rate_limiter import RedisRateLimiter
 from src.presentation.api.admin_dependencies import AdminTenantRepositoryDep
 from src.presentation.api.dependencies import DbSession
+from src.presentation.api.leaderships_dependencies import LeadershipRepositoryDep
 from src.presentation.api.voters_dependencies import GeocodingServiceDep, VoterRepositoryDep
 
 
@@ -27,6 +28,7 @@ def get_public_self_register_use_case(
     session: DbSession,
     tenant_repository: AdminTenantRepositoryDep,
     voter_repository: VoterRepositoryDep,
+    leadership_repository: LeadershipRepositoryDep,
     geocoding_service: GeocodingServiceDep,
     rate_limiter: RateLimiterDep,
 ) -> PublicSelfRegisterVoterUseCase:
@@ -34,5 +36,10 @@ def get_public_self_register_use_case(
         await set_tenant_context(session, tenant_id)
 
     return PublicSelfRegisterVoterUseCase(
-        tenant_repository, voter_repository, geocoding_service, rate_limiter, set_tenant_context_callback
+        tenant_repository,
+        voter_repository,
+        leadership_repository,
+        geocoding_service,
+        rate_limiter,
+        set_tenant_context_callback,
     )

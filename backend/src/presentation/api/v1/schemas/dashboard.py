@@ -10,6 +10,13 @@ class RegistrationGrowthPointResponse(BaseModel):
     count: int
 
 
+class LeadershipBreakdownPointResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    leadership_name: str
+    count: int
+
+
 class DashboardStatsResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -20,6 +27,7 @@ class DashboardStatsResponse(BaseModel):
     registration_growth: list[RegistrationGrowthPointResponse]
     self_registered_count: int
     staff_registered_count: int
+    leadership_breakdown: list[LeadershipBreakdownPointResponse]
 
 
 class SetVoterGoalRequest(BaseModel):
