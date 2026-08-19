@@ -30,3 +30,8 @@ export async function updateLeadership(id: string, data: LeadershipUpdateRequest
 export async function deleteLeadership(id: string): Promise<void> {
   await apiClient.delete(`/leaderships/${id}`);
 }
+
+export async function getLeadershipVoterCounts(): Promise<Record<string, number>> {
+  const response = await apiClient.get<{ counts: Record<string, number> }>("/leaderships/voter-counts");
+  return response.data.counts;
+}

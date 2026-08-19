@@ -3,6 +3,7 @@ import {
   createLeadership,
   deleteLeadership,
   getLeadership,
+  getLeadershipVoterCounts,
   listLeaderships,
   updateLeadership,
 } from "@/features/leaderships/api/leaderships-api";
@@ -56,5 +57,12 @@ export function useDeleteLeadership() {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: [LEADERSHIPS_QUERY_KEY] });
     },
+  });
+}
+
+export function useLeadershipVoterCounts() {
+  return useQuery({
+    queryKey: [LEADERSHIPS_QUERY_KEY, "voter-counts"],
+    queryFn: getLeadershipVoterCounts,
   });
 }

@@ -20,6 +20,7 @@ from src.application.leaderships.dto import (
     UpdateLeadershipInput,
 )
 from src.application.leaderships.get_leadership import GetLeadershipUseCase
+from src.application.leaderships.get_voter_counts import GetLeadershipVoterCountsInput, GetLeadershipVoterCountsUseCase
 from src.application.leaderships.list_leaderships import ListLeadershipsUseCase
 from src.application.leaderships.update_leadership import UpdateLeadershipUseCase
 from src.presentation.api.dependencies import CurrentUser, DbSession
@@ -27,6 +28,7 @@ from src.presentation.api.leaderships_dependencies import (
     get_create_leadership_use_case,
     get_delete_leadership_use_case,
     get_get_leadership_use_case,
+    get_leadership_voter_counts_use_case,
     get_list_leaderships_use_case,
     get_update_leadership_use_case,
 )
@@ -35,6 +37,7 @@ from src.presentation.api.v1.schemas.leaderships import (
     LeadershipListResponse,
     LeadershipResponse,
     LeadershipUpdateRequest,
+    LeadershipVoterCountsResponse,
 )
 
 router = APIRouter(prefix="/leaderships", tags=["leaderships"])
@@ -82,6 +85,21 @@ async def list_leaderships(
         )
     )
     return LeadershipListResponse.model_validate(output)
+
+
+@router.get("/voter-counts", response_model=LeadershipVoterCountsResponse)
+async def get_leadership_voter_counts(
+    current_user: CurrentUser,
+    use_case: Annotated[GetLeadershipVoterCountsUseCase, Depends(get_leadership_voter_counts_use_case)],
+) -> LeadershipVoterCountsResponse:
+    """
+    IMPORTANTE: precisa vir ANTES de `/{leadership_id}` neste arquivo —
+    o FastAPI casa rotas na ordem declarada, e `/{leadership_id}`
+    tentaria capturar "voter-counts" como se fosse um id (mesma lição já
+    documentada em `voters.py`, rota `/map`).
+    """
+    counts = await use_case.execute(GetLeadershipVoterCountsInput(tenant_id=current_user.tenant_id))
+    return LeadershipVoterCountsResponse(counts={str(leadership_id): count for leadership_id, count in counts.items()})
 
 
 @router.get("/{leadership_id}", response_model=LeadershipResponse)

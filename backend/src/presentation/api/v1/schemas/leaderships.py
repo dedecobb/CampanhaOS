@@ -53,3 +53,13 @@ class LeadershipListResponse(BaseModel):
     page: int
     page_size: int
     total_pages: int
+
+
+class LeadershipVoterCountsResponse(BaseModel):
+    """
+    Dicionário {leadership_id (como string) -> quantidade}. Lideranças
+    sem nenhum eleitor não aparecem aqui — o frontend deve tratar
+    ausência como zero, não como erro.
+    """
+
+    counts: dict[str, int]

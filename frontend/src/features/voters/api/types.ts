@@ -26,7 +26,7 @@ export const GENDER_OPTIONS = [
 
 export interface Voter {
   id: string;
-  created_by_user_id: string;
+  created_by_user_id: string | null;
   name: string;
   phone: string | null;
   address: string | null;

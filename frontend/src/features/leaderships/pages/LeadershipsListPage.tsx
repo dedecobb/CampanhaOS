@@ -10,7 +10,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/shared/components/ui/table";
-import { useDeleteLeadership, useLeaderships } from "@/features/leaderships/hooks/use-leaderships";
+import { useDeleteLeadership, useLeaderships, useLeadershipVoterCounts } from "@/features/leaderships/hooks/use-leaderships";
 
 const PAGE_SIZE = 20;
 
@@ -19,6 +19,7 @@ export function LeadershipsListPage() {
   const [page, setPage] = useState(1);
 
   const { data, isLoading, isError } = useLeaderships({ search: search || undefined, page, page_size: PAGE_SIZE });
+  const { data: voterCounts } = useLeadershipVoterCounts();
   const deleteLeadership = useDeleteLeadership();
 
   async function handleDelete(id: string, name: string) {
@@ -58,13 +59,14 @@ export function LeadershipsListPage() {
                 <TableHead>Região</TableHead>
                 <TableHead>Influência</TableHead>
                 <TableHead>Votos estimados</TableHead>
+                <TableHead>Eleitores Cadastrados</TableHead>
                 <TableHead className="text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {data.items.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center text-muted-foreground">
+                  <TableCell colSpan={6} className="text-center text-muted-foreground">
                     Nenhuma liderança encontrada.
                   </TableCell>
                 </TableRow>
@@ -75,6 +77,11 @@ export function LeadershipsListPage() {
                   <TableCell>{leadership.region ?? "—"}</TableCell>
                   <TableCell className="capitalize">{leadership.influence_level}</TableCell>
                   <TableCell>{leadership.estimated_votes}</TableCell>
+                  <TableCell>
+                    {/* Liderança sem nenhuma entrada no dicionário = zero
+                        cadastros, não é erro — ver contrato do endpoint. */}
+                    {voterCounts?.[leadership.id] ?? 0}
+                  </TableCell>
                   <TableCell className="space-x-2 text-right">
                     <Button variant="outline" size="sm" asChild>
                       <Link to={`/liderancas/${leadership.id}/editar`}>Editar</Link>

@@ -114,6 +114,19 @@ class SqlAlchemyVoterRepository(VoterRepository):
             page_size=page_size,
         )
 
+    async def count_by_leadership(self, tenant_id: UUID) -> dict[UUID, int]:
+        stmt = (
+            select(VoterModel.leadership_id, func.count())
+            .where(
+                VoterModel.tenant_id == tenant_id,
+                VoterModel.deleted_at.is_(None),
+                VoterModel.leadership_id.is_not(None),
+            )
+            .group_by(VoterModel.leadership_id)
+        )
+        rows = (await self._session.execute(stmt)).all()
+        return {leadership_id: count for leadership_id, count in rows}
+
     async def get_dashboard_stats(self, tenant_id: UUID) -> VoterDashboardStats:
         base_conditions = (VoterModel.tenant_id == tenant_id, VoterModel.deleted_at.is_(None))
 

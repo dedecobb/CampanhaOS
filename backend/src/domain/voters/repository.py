@@ -96,6 +96,19 @@ class VoterRepository(ABC):
         """
 
     @abstractmethod
+    async def count_by_leadership(self, tenant_id: UUID) -> dict[UUID, int]:
+        """
+        Contagem de eleitores por liderança, indexada pelo ID da
+        liderança (não pelo nome, diferente de
+        `get_dashboard_stats().leadership_breakdown` — aquele agrupa por
+        nome pra exibição no gráfico; este aqui precisa ser por ID
+        porque a tela de Lideranças precisa casar a contagem com a linha
+        certa da tabela, e nomes poderiam, em teoria, se repetir).
+        Lideranças sem nenhum eleitor simplesmente não aparecem no
+        dicionário — quem chama deve tratar ausência como zero.
+        """
+
+    @abstractmethod
     async def get_dashboard_stats(self, tenant_id: UUID) -> VoterDashboardStats:
         """
         Estatísticas agregadas para o painel do início — implementações
