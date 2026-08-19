@@ -21,6 +21,7 @@ export interface PublicVoterRegistrationRequest {
   neighborhood?: string | null;
   gender?: string | null;
   birth_date?: string | null;
+  leadership_id?: string | null;
 }
 
 export interface PublicVoterRegistrationResponse {

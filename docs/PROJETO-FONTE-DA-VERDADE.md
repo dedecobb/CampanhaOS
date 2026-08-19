@@ -1,8 +1,8 @@
 # CampanhaOS — Fonte da Verdade do Projeto
 
-**Última atualização:** 17/08/2026
+**Última atualização:** 18/08/2026
 **Fase atual:** Fase 2 em andamento
-**Módulo em desenvolvimento:** nenhum (Gênero/Nascimento + Link de Autocadastro Público + Painel do Dashboard — TODOS validados em produção real, com apoiador de verdade se autocadastrando pelo link. Próximo: anexo de comprovante financeiro — JPEG/PNG/PDF via Cloudflare R2, combinado mas não iniciado)
+**Módulo em desenvolvimento:** nenhum (Link de Cadastro por Liderança — VALIDADO em produção real, apoiador se autocadastrou pelo link de uma liderança específica com sucesso; anexo de documento financeiro via Cloudflare R2 também validado. Próximo: em aberto — ver seção 9)
 
 ---
 
@@ -401,6 +401,34 @@ O deploy real revelou vários bugs que a validação estática não conseguiria 
 
 ---
 
+### ADR-015 — Anexo financeiro via Cloudflare R2, e bug crítico de RLS descoberto (commit descarta contexto de tenant)
+**Decisão:** anexo de comprovante (JPEG/PNG/PDF, até 10MB, um por lançamento) armazenado no Cloudflare R2 (compatível com S3, sem taxa de saída), upload passando pelo backend (não direto do navegador), validação de tipo por **assinatura real dos bytes** (não confia em extensão nem `Content-Type` declarado — testado explicitamente contra um `.exe` disfarçado de `.pdf`).
+**Bug real descoberto e corrigido, de impacto amplo:** o contexto de tenant do RLS (`set_config(..., is_local=true)`) tem escopo de TRANSAÇÃO — é descartado automaticamente no `commit()`. Qualquer endpoint que fizesse "salva → comita → busca de novo pra montar a resposta" quebrava silenciosamente (a segunda busca rodava sem contexto de tenant, RLS bloqueava tudo, resultado interpretado como "não encontrado"). Encontrado no upload de anexo financeiro, e o MESMO bug também existia (proativamente corrigido) no endpoint de definir meta de eleitores. **Regra geral daqui pra frente: sempre ler antes de comitar, nunca depois, quando o mesmo endpoint precisa fazer as duas coisas.**
+**Status:** Aprovado, implementado, bug corrigido e validado em produção.
+
+### ADR-016 — Link de cadastro por liderança (reaproveitando o link único, sem infraestrutura nova)
+**Decisão:** cada liderança tem um "link próprio" que na verdade é o MESMO link único da campanha, só com um parâmetro a mais identificando a liderança (`?lideranca={id}`) — sem token novo, sem tabela nova. Quando alguém se cadastra por esse link, o eleitor já nasce vinculado automaticamente àquela liderança. Ao cadastrar uma liderança nova, o sistema já leva direto pra tela onde o link aparece pronto pra copiar.
+**Motivo:** usuário queria saber quem está trazendo mais apoiadores, sem complexidade de gerenciar tokens individuais por liderança — reaproveitar a mesma infraestrutura já existente resolveu isso de forma bem mais simples do que o desenho técnico inicial (token separado por liderança, que esbarraria em RLS e exigiria uma tabela extra).
+**Validação de segurança:** um `leadership_id` inválido ou de outro tenant na URL NÃO bloqueia o cadastro — só é ignorado silenciosamente (testado explicitamente). Rastrear "quem indicou" é um bônus, nunca deveria impedir um apoiador de verdade de se cadastrar.
+**Status:** Aprovado, implementado, e **validado em produção real** — apoiador se cadastrou por um link de liderança específica com sucesso.
+
+### 6.13 Anexo Financeiro + Link de Liderança (concluído)
+
+**O que foi entregue:**
+- **Financeiro:** `attachment_storage_key/filename/content_type/size_bytes` em `FinanceTransaction`; `FileStoragePort` + `CloudflareR2Storage`; detecção de tipo por assinatura de bytes (`file_signature.py`); endpoints `POST/DELETE /finance/{id}/attachment`, `GET /finance/{id}/attachment/download-url` (link assinado, expira em 15min)
+- **Liderança:** endpoint público de autocadastro aceita `leadership_id` opcional, validado contra o tenant resolvido; tela de liderança mostra o link pronto (aparece automaticamente logo após cadastrar uma liderança nova); painel do início ganhou "Eleitores por Liderança" (ranking, incluindo "Sem liderança" pra quem não tem vínculo)
+- **Migração:** `0020_add_finance_attachment` (única migração nova; o link de liderança não precisou de migração nenhuma)
+
+**Bugs reais e causas externas encontradas:**
+1. Credenciais do R2 trocadas de lugar (Access Key ID ↔ Secret Access Key) — erro `Credential access key has length 64, should be 32`, bem diagnosticável pela mensagem
+2. **Bug de RLS descrito no ADR-015** — o mais sério de toda a sessão, silencioso e só percebido com log de diagnóstico
+3. Gráficos do painel não tinham proteção contra campo `undefined` — quebrava a página INTEIRA quando havia descompasso temporário entre o deploy do frontend (Vercel) e do backend (Railway terminando depois). Corrigido com fallback defensivo (`?? []`, `?? {}`) em todos os 4 gráficos — lição: todo componente que consome API deveria ter essa proteção por padrão, não só quando o bug aparece
+4. **Incidente externo real**: GitHub teve queda generalizada (Webhooks/Actions/API) na tarde de 18/08/2026, causando fila de deploy travada na Railway por mais de 12 minutos — nada a ver com o código, resolvido sozinho quando o GitHub normalizou
+
+**Validado em produção, 18/08/2026**: eleitor se autocadastrou por um link de liderança específica com sucesso, aparecendo corretamente na lista de eleitores e no ranking do painel.
+
+---
+
 ## 6. Modelagem de Dados (estado atual)
 
 **Implementadas e migradas:**
@@ -416,7 +444,9 @@ O deploy real revelou vários bugs que a validação estática não conseguiria 
 
 - **Módulo Gênero/Autocadastro/Dashboard:** `voters` ganhou `gender`/`birth_date`, `created_by_user_id` virou opcional (migração `0018`); `tenants` ganhou `public_registration_token` (`0017`) e `voter_goal` (`0019`)
 
-Schema real em `backend/src/infrastructure/database/models.py`. Migrações `0001` a `0019`.
+- **Módulo Anexo Financeiro:** `finance_transactions` ganhou `attachment_storage_key/filename/content_type/size_bytes` (`0020`)
+
+Schema real em `backend/src/infrastructure/database/models.py`. Migrações `0001` a `0020`.
 
 **Ainda conceituais, não implementadas:** `AuditLog` (transversal, ainda sem módulo dedicado).
 
@@ -487,15 +517,14 @@ Diagrama ER conceitual completo (incluindo as entidades ainda não implementadas
 
 ## 9. Próximo Passo
 
-**Piloto no ar, com autocadastro público validado por um apoiador real, dashboard de estatísticas funcionando, e cadastro de eleitor com gênero/data de nascimento.** Antes de seguir:
-1. Confirmar que todos os arquivos das sessões `Gênero/Autocadastro/Dashboard` e `WhatsApp` estão de fato commitados (essa sessão teve bastante arquivo "esquecido" na cópia — vale rodar uma checagem completa por `grep -c` antes do próximo bloco grande, não só depois do erro aparecer).
-2. Salvar a versão atual deste documento.
+**Piloto no ar, com o comercial também avançando — proposta enviada pra um segundo candidato.** Sistema validado ponta a ponta em produção: autocadastro público, autocadastro por liderança específica, anexo financeiro, painel com estatísticas completas (gênero, idade, crescimento, meta, ranking de liderança). Antes de seguir:
+1. Salvar a versão atual deste documento.
+2. Se o segundo candidato (proposta comercial já enviada) fechar negócio: criar o tenant novo dele via `POST /auth/register`, e configurar WhatsApp (Twilio) separadamente pra essa campanha, já que cada uma precisa do próprio número/sandbox.
 
-**Combinado, mas NÃO iniciado — próxima sessão:**
-- **Anexo de comprovante financeiro** (JPEG/PNG/PDF) nos lançamentos do módulo Financeiro, usando **Cloudflare R2** (compatível com S3, sem taxa de saída, plano grátis de 10GB) — usuário ainda precisa criar a conta Cloudflare antes de começar.
+**Correção de nota antiga**: o item "Frontend de Lideranças/Agenda/Financeiro ainda falta" (que aparecia aqui antes) está desatualizado — todas essas telas já foram construídas e estão em uso normal há várias sessões.
 
 **Outras opções em aberto (nenhuma é bloqueante):**
-1. **Frontend de Lideranças, Agenda e Financeiro** — telas que ainda faltam pro piloto usar o sistema por completo no dia a dia (ainda só acessíveis via Swagger)
-2. **Mapa mental de relacionamentos** (lideranças ↔ eleitores) — já desenhado, não iniciado
-3. Módulos 8 (IA) e 9+ (funcionalidades da Fase 1 ainda não quebradas em módulos)
-4. WhatsApp com número de produção (sair do Sandbox do Twilio) — precisa de verificação de negócio na Meta
+1. **Mapa mental de relacionamentos** (lideranças ↔ eleitores) — já desenhado, não iniciado
+2. Módulos 8 (IA) e 9+ (funcionalidades da Fase 1 ainda não quebradas em módulos)
+3. WhatsApp com número de produção (sair do Sandbox do Twilio) — precisa de verificação de negócio na Meta
+4. **Lição de processo pra sessões futuras**: essa sessão teve MUITO arquivo "esquecido" na cópia entre o chat e os ambientes reais (Codespace/PC local), além de confusão de sincronização Git entre os dois ambientes. Vale considerar: (a) usar só UM ambiente por sessão de trabalho, ou (b) sempre rodar `git pull` logo ao trocar de ambiente, antes de aplicar qualquer arquivo novo.

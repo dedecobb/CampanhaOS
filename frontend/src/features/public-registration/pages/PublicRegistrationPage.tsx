@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/shared/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/components/ui/card";
@@ -13,6 +13,12 @@ import { GENDER_OPTIONS } from "@/features/public-registration/api/types";
 
 export function PublicRegistrationPage() {
   const { token } = useParams<{ token: string }>();
+  // Lê "?lideranca={id}" da URL — é isso que faltava: o backend já
+  // aceitava esse campo desde o Bloco A, mas essa tela nunca chegou a
+  // ler nem enviar ele. Sem isso, TODO cadastro público (mesmo pelo link
+  // de uma liderança específica) caía sempre em "Sem liderança".
+  const [searchParams] = useSearchParams();
+  const leadershipId = searchParams.get("lideranca");
 
   const { data: campaignInfo, isLoading: isLoadingCampaign, isError: isCampaignError } = useQuery({
     queryKey: ["public-campaign-info", token],
@@ -62,6 +68,7 @@ export function PublicRegistrationPage() {
         postal_code: postalCode || null,
         gender: gender || null,
         birth_date: birthDate || null,
+        leadership_id: leadershipId || null,
       });
       setSubmitSuccess(true);
     } catch (error) {
